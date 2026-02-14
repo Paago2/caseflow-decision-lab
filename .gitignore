@@ -1,0 +1,21 @@
+# env
+.env
+*.env
+
+# python caches
+__pycache__/
+*.pyc
+
+# notebooks
+.ipynb_checkpoints/
+
+# runtime data/artifacts
+data/
+artifacts/
+reports/
+logs/
+
+# tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
