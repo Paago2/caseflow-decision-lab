@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, FastAPI, Security
 
 from caseflow.api.routes_ready import router as ready_router
 from caseflow.api.routes_version import router as version_router
@@ -10,7 +10,7 @@ install_request_id_middleware(app)
 
 protected_router = APIRouter(
     prefix="/protected",
-    dependencies=[Depends(require_api_key)],
+    dependencies=[Security(require_api_key)],
 )
 
 
