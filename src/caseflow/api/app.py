@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, FastAPI
 
 from caseflow.api.routes_ready import router as ready_router
+from caseflow.api.routes_version import router as version_router
 from caseflow.core.auth import require_api_key
 
 app = FastAPI(title="caseflow-decision-lab API")
@@ -21,4 +22,5 @@ def protected_ping() -> dict[str, str]:
 
 
 app.include_router(ready_router)
+app.include_router(version_router)
 app.include_router(protected_router)
