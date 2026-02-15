@@ -1,11 +1,17 @@
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 
 from caseflow.core.settings import get_settings
 
+api_key_header = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False,
+    scheme_name="ApiKeyAuth",
+)
 
-def require_api_key(request: Request) -> None:
+
+def require_api_key(provided_api_key: str | None = Security(api_key_header)) -> None:
     settings = get_settings()
-    provided_api_key = request.headers.get("X-API-Key")
 
     if not provided_api_key or provided_api_key != settings.api_key:
         raise HTTPException(
