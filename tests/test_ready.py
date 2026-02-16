@@ -25,7 +25,7 @@ def test_ready_when_api_key_set_and_app_env_valid(monkeypatch) -> None:
 
 def test_not_ready_when_api_key_missing(monkeypatch) -> None:
     monkeypatch.delenv("API_KEY", raising=False)
-    monkeypatch.setenv("APP_ENV", "prod")
+    monkeypatch.setenv("APP_ENV", "local")
     clear_settings_cache()
 
     client = TestClient(app)

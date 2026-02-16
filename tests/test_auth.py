@@ -17,7 +17,7 @@ def test_health_is_unprotected_without_api_key(monkeypatch) -> None:
 
 
 def test_ready_keeps_existing_behavior(monkeypatch) -> None:
-    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.setenv("API_KEY", "server-key")
     monkeypatch.setenv("APP_ENV", "dev")
     clear_settings_cache()
 
