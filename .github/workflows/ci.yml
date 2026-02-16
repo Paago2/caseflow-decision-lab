@@ -13,29 +13,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.11"
-
-      - name: Install uv
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install uv
-
-      - name: Cache uv
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/uv
-          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            uv-${{ runner.os }}-
+          enable-cache: true
 
       - name: Sync dependencies (locked) + dev tools
         run: uv sync --frozen --group dev
 
-      - name: Run tests
+      - name: Run quality gates
         env:
           PYTHONPATH: src
-        run: uv run pytest -q
+        run: make check
