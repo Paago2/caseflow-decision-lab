@@ -19,3 +19,6 @@ logs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Packaging/build artifacts
+*.egg-info/
