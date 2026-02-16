@@ -26,11 +26,12 @@ test:
 test-local:
 	PYTHONPATH=src uv run pytest -q
 
+# Local quality gates
 fmt:
-	uv run ruff --fix .
+	uv run ruff check --fix .
 	uv run black .
 
 lint:
-	uv run ruff .
+	uv run ruff check .
 
 check: fmt lint test-local

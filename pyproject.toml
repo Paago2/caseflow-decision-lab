@@ -25,3 +25,10 @@ notebook = [
     "ipykernel>=7.2.0",
     "jupyter>=1.1.1",
 ]
+
+[tool.ruff]
+line-length = 88
+lint.select = ["E", "F", "I"]
+
+[tool.black]
+line-length = 88
