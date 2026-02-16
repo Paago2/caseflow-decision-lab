@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "caseflow-decision-lab"
 version = "0.1.0"
@@ -32,3 +36,10 @@ lint.select = ["E", "F", "I"]
 
 [tool.black]
 line-length = 88
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["caseflow*"]

@@ -3,8 +3,12 @@ FROM ghcr.io/astral-sh/uv:python3.11-bookworm
 WORKDIR /app
 
 # Install project dependencies from lockfile (including dev for in-container tests)
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --all-groups
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --all-groups --no-install-project
+
+# Install the local src-layout package into the virtual environment
+COPY src ./src
+RUN uv pip install -e .
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
