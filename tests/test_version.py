@@ -29,6 +29,7 @@ def test_version_unprotected_and_defaults(monkeypatch) -> None:
 def test_version_returns_overridden_env_values_without_api_key(monkeypatch) -> None:
     monkeypatch.setenv("APP_NAME", "caseflow-custom")
     monkeypatch.setenv("APP_ENV", "stg")
+    monkeypatch.setenv("API_KEY", "stg-key")
     monkeypatch.setenv("APP_VERSION", "1.2.3")
     monkeypatch.setenv("GIT_SHA", "abc123def")
     monkeypatch.setenv("BUILD_TIME", "2026-02-15T14:00:00Z")
