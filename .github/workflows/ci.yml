@@ -21,6 +21,11 @@ jobs:
       - name: Sync dependencies (locked) + dev tools
         run: uv sync --frozen --group dev
 
+      - name: Export build metadata
+        run: |
+          echo "GIT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+          echo "BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
       - name: Run quality gates
         env:
           PYTHONPATH: src
