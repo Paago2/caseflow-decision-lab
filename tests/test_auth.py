@@ -37,11 +37,27 @@ def test_protected_ping_requires_api_key_header(monkeypatch) -> None:
 
     missing_header = client.get("/protected/ping")
     assert missing_header.status_code == 401
-    assert missing_header.json() == {"detail": "Unauthorized"}
+    assert missing_header.headers.get("X-Request-Id")
+    assert missing_header.json() == {
+        "error": {
+            "code": "http_error",
+            "message": "Unauthorized",
+            "status": 401,
+            "request_id": missing_header.headers["X-Request-Id"],
+        }
+    }
 
     wrong_header = client.get("/protected/ping", headers={"X-API-Key": "wrong-key"})
     assert wrong_header.status_code == 401
-    assert wrong_header.json() == {"detail": "Unauthorized"}
+    assert wrong_header.headers.get("X-Request-Id")
+    assert wrong_header.json() == {
+        "error": {
+            "code": "http_error",
+            "message": "Unauthorized",
+            "status": 401,
+            "request_id": wrong_header.headers["X-Request-Id"],
+        }
+    }
 
     correct_header = client.get(
         "/protected/ping",
