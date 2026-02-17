@@ -24,8 +24,10 @@ def ready() -> JSONResponse:
     }
 
     return JSONResponse(
-        status_code=status.HTTP_200_OK
-        if all_checks_passed
-        else status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=(
+            status.HTTP_200_OK
+            if all_checks_passed
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        ),
         content=payload,
     )
