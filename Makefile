@@ -1,4 +1,4 @@
-.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-help test test-local fmt lint check
+.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-help register test test-local fmt lint check
 
 up:
 	docker compose up -d
@@ -50,10 +50,29 @@ exp:
 exp-001:
 	uv run python experiments/exp_001_linear_score_sanity.py
 
+exp-002:
+	uv run python experiments/exp_002_train_linear_diabetes.py
+
+register:
+	@if [ -z "$(MODEL_ID)" ]; then \
+		echo 'Usage: make register MODEL_ID=<model_id>'; \
+		exit 1; \
+	fi
+	@src="artifacts/models/$(MODEL_ID)/model.json"; \
+	if [ ! -f "$$src" ]; then \
+		echo "Artifact not found: $$src"; \
+		exit 1; \
+	fi; \
+	mkdir -p "models/registry/$(MODEL_ID)"; \
+	cp "$$src" "models/registry/$(MODEL_ID)/model.json"; \
+	echo "Registered $(MODEL_ID) to models/registry/$(MODEL_ID)/model.json"
+
 exp-help:
 	@echo 'Usage: make exp ARGS="experiments/<script>.py"'
 	@echo 'Example: make exp ARGS="experiments/exp_001_linear_score_sanity.py"'
 	@echo 'Shortcut: make exp-001'
+	@echo 'Train/export example: make exp-002'
+	@echo 'Register artifact: make register MODEL_ID=diabetes_linreg_v1'
 
 # Run tests inside container (closest to production)
 test:

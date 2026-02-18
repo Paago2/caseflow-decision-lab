@@ -16,6 +16,12 @@ Example:
 make exp-001
 ```
 
+Train/evaluate/export a real model artifact:
+
+```bash
+make exp-002
+```
+
 ## Suggested structure
 
 - One script per experiment, with a clear ID prefix (for example: `exp_001_*`, `exp_002_*`).
@@ -31,3 +37,37 @@ When an experiment is accepted:
 2. Add/expand tests under `tests/`.
 3. Verify service readiness checks still pass (`/ready` contract unchanged unless explicitly planned).
 4. Keep experiment scripts as references or remove them after promotion.
+
+## Exp 002 end-to-end workflow
+
+1. Run training/eval/export:
+
+   ```bash
+   make exp-002
+   ```
+
+   This writes a runtime-compatible artifact at:
+   `artifacts/models/diabetes_linreg_v1/model.json`
+
+2. Register the produced model into the runtime registry:
+
+   ```bash
+   make register MODEL_ID=diabetes_linreg_v1
+   ```
+
+3. Activate the model through the API:
+
+   ```bash
+   curl -sS -X POST \
+     -H "X-API-Key: ${API_KEY}" \
+     http://localhost:8000/models/activate/diabetes_linreg_v1
+   ```
+
+4. Test prediction:
+
+   ```bash
+   curl -sS -X POST \
+     -H "Content-Type: application/json" \
+     -d '{"features":[0.1,-1.2,2.3,0.0,0.5,-0.2,0.1,0.3,-0.4,0.2]}' \
+     http://localhost:8000/predict
+   ```
