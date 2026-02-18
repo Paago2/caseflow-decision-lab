@@ -73,6 +73,42 @@ make down
 - `make check` (fmt + lint + test-local)
 - `uv run pre-commit install`
 
+### Run locally (clean)
+
+If port 8000 is stuck from an old process, clean it up first:
+
+```bash
+# Find PID with lsof
+sudo lsof -nP -iTCP:8000 -sTCP:LISTEN
+
+# Or find PID with ss
+sudo ss -lptn 'sport = :8000'
+
+# Kill PID (replace <PID>)
+kill <PID>
+```
+
+Set environment variables for local runs:
+
+```bash
+export API_KEY="dev-preview-key"
+export MODEL_REGISTRY_DIR="models/registry"
+export ACTIVE_MODEL_ID="baseline_v1"
+```
+
+Start the API:
+
+```bash
+make run
+```
+
+Convenience targets:
+
+```bash
+make pid-8000
+make kill-8000
+```
+
 ### CI behavior
 
 - CI runs on PRs and pushes to main.

@@ -7,7 +7,18 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
-_EXTRA_KEYS = ("request_id", "method", "path", "status_code", "duration_ms")
+_EXTRA_KEYS = (
+    "request_id",
+    "method",
+    "path",
+    "status_code",
+    "duration_ms",
+    "event",
+    "active_model_id",
+    "model_registry_dir",
+    "error_type",
+    "error_message",
+)
 _KV_PATTERN = re.compile(
     r"(?P<key>request_id|method|path|status_code|duration_ms)=(?P<value>[^\s]+)"
 )

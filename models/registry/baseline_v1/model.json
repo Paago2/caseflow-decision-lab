@@ -1,0 +1,6 @@
+{
+  "model_id": "baseline_v1",
+  "type": "linear",
+  "bias": 0.2,
+  "weights": [0.5, -0.1, 0.05]
+}
