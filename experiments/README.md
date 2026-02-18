@@ -22,6 +22,12 @@ Train/evaluate/export a real model artifact:
 make exp-002
 ```
 
+Compare two models and export the best:
+
+```bash
+make exp-003
+```
+
 ## Suggested structure
 
 - One script per experiment, with a clear ID prefix (for example: `exp_001_*`, `exp_002_*`).
@@ -66,6 +72,39 @@ When an experiment is accepted:
 4. Test prediction:
 
    ```bash
+   curl -sS -X POST \
+     -H "Content-Type: application/json" \
+     -d '{"features":[0.1,-1.2,2.3,0.0,0.5,-0.2,0.1,0.3,-0.4,0.2]}' \
+     http://localhost:8000/predict
+   ```
+
+## Exp 003 compare-and-promote workflow
+
+1. Run model comparison + export:
+
+   ```bash
+   make exp-003
+   ```
+
+2. View metrics report:
+
+   ```bash
+   cat artifacts/reports/exp_003_metrics.json
+   ```
+
+3. Register exported winner model:
+
+   ```bash
+   make register MODEL_ID=diabetes_best_v1
+   ```
+
+4. Activate and test via API:
+
+   ```bash
+   curl -sS -X POST \
+     -H "X-API-Key: ${API_KEY}" \
+     http://localhost:8000/models/activate/diabetes_best_v1
+
    curl -sS -X POST \
      -H "Content-Type: application/json" \
      -d '{"features":[0.1,-1.2,2.3,0.0,0.5,-0.2,0.1,0.3,-0.4,0.2]}' \
