@@ -11,9 +11,14 @@ __pycache__/
 
 # runtime data/artifacts
 data/
-artifacts/
+artifacts/*
+!artifacts/.gitkeep
+artifacts/**/*.jsonl
+artifacts/**/*.csv
+artifacts/**/*.parquet
 reports/
 logs/
+experiments/__pycache__/
 
 # tooling caches
 .pytest_cache/

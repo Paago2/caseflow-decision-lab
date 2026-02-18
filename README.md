@@ -73,6 +73,30 @@ make down
 - `make check` (fmt + lint + test-local)
 - `uv run pre-commit install`
 
+### Experiments workflow
+
+Use experiments for rapid business-logic iteration without polluting production code in `src/caseflow`.
+
+- Run the example experiment:
+
+  ```bash
+  make exp-001
+  ```
+
+- Run any experiment script:
+
+  ```bash
+  make exp ARGS="experiments/<script>.py"
+  ```
+
+- Store local outputs in `artifacts/` (these are gitignored).
+
+Promotion checklist for successful experiments:
+
+1. Move stable logic into `src/caseflow/ml/`.
+2. Add tests under `tests/`.
+3. Ensure `/ready` gates still pass.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:
