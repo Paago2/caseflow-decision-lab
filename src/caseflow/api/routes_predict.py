@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from caseflow.ml.model import N_FEATURES, predict
+from caseflow.ml.registry import get_active_model
 
 router = APIRouter()
 
@@ -36,16 +36,16 @@ async def predict_endpoint(request: Request) -> dict[str, Any]:
             detail="'features' must contain only numeric values",
         ) from exc
 
-    if len(numeric_features) != N_FEATURES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"'features' must contain exactly {N_FEATURES} values",
-        )
+    model = get_active_model()
+    try:
+        score = model.predict(numeric_features)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    prediction = predict(numeric_features)
     request_id = getattr(request.state, "request_id", "") or ""
 
     return {
-        "prediction": prediction,
+        "model_id": model.model_id,
+        "score": score,
         "request_id": request_id,
     }

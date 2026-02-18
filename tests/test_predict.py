@@ -8,16 +8,16 @@ def test_predict_valid_input_returns_prediction_and_request_id() -> None:
 
     response = client.post(
         "/predict",
-        json={"features": [0.1, -1.2, 2.3, 0.4]},
+        json={"features": [0.1, -1.2, 2.3]},
         headers={"X-Request-Id": "req-123"},
     )
 
     assert response.status_code == 200
     body = response.json()
 
-    assert "prediction" in body
-    assert isinstance(body["prediction"], float)
-    assert 0.0 <= body["prediction"] <= 1.0
+    assert body["model_id"] == "baseline_v1"
+    assert "score" in body
+    assert isinstance(body["score"], float)
     assert body["request_id"] == "req-123"
     assert response.headers["X-Request-Id"] == "req-123"
 
