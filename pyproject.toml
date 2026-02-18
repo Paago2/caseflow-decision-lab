@@ -9,25 +9,29 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.129.0",
-    "pydantic>=2.12.5",
-    "python-dotenv>=1.2.1",
-    "pyyaml>=6.0.3",
-    "uvicorn[standard]>=0.40.0",
+  "fastapi>=0.129.0",
+  "pydantic>=2.12.5",
+  "python-dotenv>=1.2.1",
+  "pyyaml>=6.0.3",
+  "uvicorn[standard]>=0.40.0",
 ]
 
 [dependency-groups]
 dev = [
-    "black>=26.1.0",
-    "httpx>=0.28.1",
-    "mypy>=1.19.1",
-    "pre-commit>=4.5.1",
-    "pytest>=9.0.2",
-    "ruff>=0.15.1",
+  "black>=26.1.0",
+  "httpx>=0.28.1",
+  "mypy>=1.19.1",
+  "pre-commit>=4.5.1",
+  "pytest>=9.0.2",
+  "ruff>=0.15.1",
 ]
 notebook = [
-    "ipykernel>=7.2.0",
-    "jupyter>=1.1.1",
+  "ipykernel>=7.2.0",
+  "jupyter>=1.1.1",
+]
+ml = [
+  "numpy>=2.0.0",
+  "scikit-learn>=1.5.0",
 ]
 
 [tool.ruff]
@@ -38,7 +42,7 @@ lint.select = ["E", "F", "I"]
 line-length = 88
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
