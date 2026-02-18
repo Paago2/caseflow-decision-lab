@@ -27,3 +27,4 @@ experiments/__pycache__/
 
 # Packaging/build artifacts
 *.egg-info/
+notebooks/
