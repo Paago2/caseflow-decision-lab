@@ -10,7 +10,12 @@ __pycache__/
 .ipynb_checkpoints/
 
 # runtime data/artifacts
-data/
+data/raw/**
+data/processed/**
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/samples/.gitkeep
+!data/samples/**
 artifacts/*
 !artifacts/.gitkeep
 artifacts/**/*.jsonl
@@ -28,3 +33,4 @@ experiments/__pycache__/
 # Packaging/build artifacts
 *.egg-info/
 notebooks/
+dist/

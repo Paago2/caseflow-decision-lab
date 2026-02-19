@@ -1,0 +1,16 @@
+datasets:
+  - name: example_diabetes_csv
+    path: data/raw/diabetes.csv
+    target_column: target
+    feature_columns:
+      - age
+      - sex
+      - bmi
+      - bp
+      - s1
+      - s2
+      - s3
+      - s4
+      - s5
+      - s6
+    schema_version: "2"

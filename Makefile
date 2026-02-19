@@ -1,4 +1,4 @@
-.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-help register test test-local fmt lint check
+.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-help register test test-local fmt lint check
 
 up:
 	docker compose up -d
@@ -56,6 +56,9 @@ exp-002:
 exp-003:
 	uv run python experiments/exp_003_compare_linear_vs_ridge.py
 
+exp-007:
+	uv run python experiments/exp_007_ingest_validate_dataset.py
+
 register:
 	@if [ -z "$(MODEL_ID)" ]; then \
 		echo 'Usage: make register MODEL_ID=<model_id>'; \
@@ -76,6 +79,7 @@ exp-help:
 	@echo 'Shortcut: make exp-001'
 	@echo 'Train/export example: make exp-002'
 	@echo 'Compare/select/export example: make exp-003'
+	@echo 'Ingest/validate dataset example: make exp-007'
 	@echo 'Register artifact: make register MODEL_ID=diabetes_linreg_v1'
 
 # Run tests inside container (closest to production)
