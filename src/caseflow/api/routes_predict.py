@@ -22,21 +22,27 @@ async def predict_endpoint(request: Request) -> dict[str, Any]:
         )
 
     features = payload.get("features")
+    model = get_active_model()
 
-    if not isinstance(features, list):
-        raise HTTPException(
-            status_code=400, detail="'features' must be a list of numbers"
-        )
-
-    try:
-        numeric_features = [float(value) for value in features]
-    except (TypeError, ValueError) as exc:
+    if isinstance(features, list):
+        try:
+            numeric_features = [float(value) for value in features]
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="'features' must contain only numeric values",
+            ) from exc
+    elif isinstance(features, dict):
+        try:
+            numeric_features = model.vector_from_named_features(features)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    else:
         raise HTTPException(
             status_code=400,
-            detail="'features' must contain only numeric values",
-        ) from exc
+            detail="'features' must be a list of numbers or an object",
+        )
 
-    model = get_active_model()
     try:
         score = model.predict(numeric_features)
     except ValueError as exc:
