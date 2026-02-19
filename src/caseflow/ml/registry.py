@@ -13,6 +13,7 @@ class LinearModel:
     type: str
     bias: float
     weights: list[float]
+    feature_names: list[str] | None = None
 
     def predict(self, features: list[float]) -> float:
         if len(features) != len(self.weights):
@@ -24,6 +25,31 @@ class LinearModel:
         return self.bias + sum(
             weight * feature for weight, feature in zip(self.weights, features)
         )
+
+    def vector_from_named_features(self, features: dict[str, object]) -> list[float]:
+        if self.feature_names is None:
+            raise ValueError(
+                "'features' object is not supported for model without schema"
+            )
+
+        expected_names = set(self.feature_names)
+        provided_names = set(features.keys())
+
+        missing_names = sorted(expected_names - provided_names)
+        extra_names = sorted(provided_names - expected_names)
+
+        if missing_names:
+            raise ValueError(
+                "Missing required feature keys: " + ", ".join(missing_names)
+            )
+
+        if extra_names:
+            raise ValueError("Unknown feature keys: " + ", ".join(extra_names))
+
+        try:
+            return [float(features[name]) for name in self.feature_names]
+        except (TypeError, ValueError) as exc:
+            raise ValueError("'features' object values must be numeric") from exc
 
 
 _active_model: LinearModel | None = None
@@ -65,6 +91,7 @@ def load_model(model_id: str) -> LinearModel:
     payload_type = payload.get("type")
     payload_bias = payload.get("bias")
     payload_weights = payload.get("weights")
+    payload_schema = payload.get("schema")
 
     if payload_model_id != model_id:
         raise ValueError(
@@ -92,11 +119,57 @@ def load_model(model_id: str) -> LinearModel:
             f"Model '{model_id}' has non-numeric values in 'weights'"
         ) from exc
 
+    feature_names: list[str] | None = None
+    if payload_schema is not None:
+        if not isinstance(payload_schema, dict):
+            raise ValueError(f"Model '{model_id}' has invalid 'schema' section")
+
+        if payload_schema.get("schema_version") != "1":
+            raise ValueError(
+                f"Model '{model_id}' schema_version must be '1' when schema is set"
+            )
+
+        schema_features = payload_schema.get("features")
+        if not isinstance(schema_features, list) or not schema_features:
+            raise ValueError(
+                f"Model '{model_id}' schema must define a non-empty 'features' list"
+            )
+
+        parsed_names: list[str] = []
+        for item in schema_features:
+            if not isinstance(item, dict):
+                raise ValueError(f"Model '{model_id}' schema features must be objects")
+
+            name = item.get("name")
+            dtype = item.get("dtype")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(
+                    f"Model '{model_id}' schema feature names must be non-empty strings"
+                )
+            if dtype != "float":
+                raise ValueError(
+                    f"Model '{model_id}' schema feature '{name}' must have dtype "
+                    f"'float'"
+                )
+
+            parsed_names.append(name)
+
+        if len(parsed_names) != len(set(parsed_names)):
+            raise ValueError(f"Model '{model_id}' schema feature names must be unique")
+
+        if len(parsed_names) != len(weights):
+            raise ValueError(
+                f"Model '{model_id}' schema feature count must match weights length"
+            )
+
+        feature_names = parsed_names
+
     return LinearModel(
         model_id=model_id,
         type=payload_type,
         bias=bias,
         weights=weights,
+        feature_names=feature_names,
     )
 
 
