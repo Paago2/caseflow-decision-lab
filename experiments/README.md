@@ -28,6 +28,12 @@ Compare two models and export the best:
 make exp-003
 ```
 
+Train from processed parquet and export schema-v2 model:
+
+```bash
+make exp-008
+```
+
 ## Suggested structure
 
 - One script per experiment, with a clear ID prefix (for example: `exp_001_*`, `exp_002_*`).
@@ -109,4 +115,45 @@ When an experiment is accepted:
      -H "Content-Type: application/json" \
      -d '{"features":[0.1,-1.2,2.3,0.0,0.5,-0.2,0.1,0.3,-0.4,0.2]}' \
      http://localhost:8000/predict
+   ```
+
+## Exp 008 parquet-train-and-decision workflow
+
+1. Ensure processed parquet exists (from Exp 007):
+
+   ```bash
+   make exp-007
+   ```
+
+2. Train from processed parquet + export schema-v2 artifact:
+
+   ```bash
+   make exp-008
+   ```
+
+   This writes:
+   - `artifacts/models/diabetes_from_parquet_v1/model.json`
+   - `artifacts/reports/exp_008_metrics.json`
+
+3. Register model artifact into runtime registry:
+
+   ```bash
+   make register MODEL_ID=diabetes_from_parquet_v1
+   ```
+
+4. Activate model:
+
+   ```bash
+   curl -sS -X POST \
+     -H "X-API-Key: ${API_KEY}" \
+     http://localhost:8000/models/activate/diabetes_from_parquet_v1
+   ```
+
+5. Call decision endpoint with partial dict (schema-v2 optional defaults apply):
+
+   ```bash
+   curl -sS -X POST \
+     -H "Content-Type: application/json" \
+     -d '{"features":{"age":0.1,"sex":-1.2,"bmi":2.3,"bp":0.0}}' \
+     http://localhost:8000/decision
    ```
