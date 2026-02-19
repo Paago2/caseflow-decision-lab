@@ -1,0 +1,78 @@
+{
+  "model_id": "diabetes_from_parquet_v1",
+  "type": "linear",
+  "bias": 151.33891731899504,
+  "weights": [
+    39.0621295649216,
+    -240.6271554861864,
+    545.08883244793,
+    345.7498790844628,
+    -726.5999998224484,
+    358.53136783611825,
+    71.73543140264955,
+    246.51531859128187,
+    656.9950255463958,
+    50.880794966749754
+  ],
+  "schema": {
+    "schema_version": "2",
+    "features": [
+      {
+        "name": "age",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "sex",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "bmi",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "bp",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "s1",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s2",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s3",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s4",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s5",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s6",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      }
+    ]
+  }
+}
