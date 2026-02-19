@@ -18,6 +18,8 @@ data/processed/**
 !data/samples/**
 artifacts/*
 !artifacts/.gitkeep
+!artifacts/events/
+!artifacts/events/.gitkeep
 artifacts/**/*.jsonl
 artifacts/**/*.csv
 artifacts/**/*.parquet

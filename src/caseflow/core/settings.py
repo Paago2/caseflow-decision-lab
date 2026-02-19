@@ -16,6 +16,12 @@ class Settings:
     api_key: str = ""
     model_registry_dir: str = "models/registry"
     active_model_id: str = "baseline_v1"
+    rate_limit_enabled: bool = False
+    rate_limit_rps: float = 5.0
+    rate_limit_burst: int = 10
+    rate_limit_scope: str = "ip"
+    audit_sink: str = "log"
+    audit_jsonl_path: str = "artifacts/events/decision_events.jsonl"
 
 
 _settings: Settings | None = None
@@ -39,6 +45,28 @@ def _validate_settings(settings: Settings) -> None:
     if not settings.active_model_id.strip():
         raise ValueError("ACTIVE_MODEL_ID must be set and non-empty.")
 
+    if settings.rate_limit_rps < 0:
+        raise ValueError("RATE_LIMIT_RPS must be >= 0.")
+
+    if settings.rate_limit_burst < 0:
+        raise ValueError("RATE_LIMIT_BURST must be >= 0.")
+
+    if settings.rate_limit_scope != "ip":
+        raise ValueError("RATE_LIMIT_SCOPE must be 'ip'.")
+
+    if settings.audit_sink not in {"log", "jsonl"}:
+        raise ValueError("AUDIT_SINK must be 'log' or 'jsonl'.")
+
+    if settings.audit_sink == "jsonl" and not settings.audit_jsonl_path.strip():
+        raise ValueError("AUDIT_JSONL_PATH must be set when AUDIT_SINK=jsonl.")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
 
 def get_settings() -> Settings:
     global _settings
@@ -53,6 +81,15 @@ def get_settings() -> Settings:
             api_key=os.getenv("API_KEY", ""),
             model_registry_dir=os.getenv("MODEL_REGISTRY_DIR", "models/registry"),
             active_model_id=os.getenv("ACTIVE_MODEL_ID", "baseline_v1"),
+            rate_limit_enabled=_env_bool("RATE_LIMIT_ENABLED", False),
+            rate_limit_rps=float(os.getenv("RATE_LIMIT_RPS", "5")),
+            rate_limit_burst=int(os.getenv("RATE_LIMIT_BURST", "10")),
+            rate_limit_scope=os.getenv("RATE_LIMIT_SCOPE", "ip"),
+            audit_sink=os.getenv("AUDIT_SINK", "log"),
+            audit_jsonl_path=os.getenv(
+                "AUDIT_JSONL_PATH",
+                "artifacts/events/decision_events.jsonl",
+            ),
         )
         _validate_settings(candidate)
         _settings = candidate
