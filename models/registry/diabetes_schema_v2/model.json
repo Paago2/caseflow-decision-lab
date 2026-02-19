@@ -1,0 +1,78 @@
+{
+  "model_id": "diabetes_schema_v2",
+  "type": "linear",
+  "bias": 151.33891731899504,
+  "weights": [
+    39.06212956492161,
+    -240.6271554861858,
+    545.0888324479291,
+    345.7498790844619,
+    -726.5999998224444,
+    358.53136783611626,
+    71.73543140264694,
+    246.51531859127877,
+    656.9950255463948,
+    50.88079496675056
+  ],
+  "schema": {
+    "schema_version": "2",
+    "features": [
+      {
+        "name": "age",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "sex",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "bmi",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "bp",
+        "dtype": "float",
+        "required": true
+      },
+      {
+        "name": "s1",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s2",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s3",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s4",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s5",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      },
+      {
+        "name": "s6",
+        "dtype": "float",
+        "required": false,
+        "default": 0.0
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Security
 
+from caseflow.api.routes_decision import router as decision_router
 from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_predict import router as predict_router
 from caseflow.api.routes_ready import router as ready_router
@@ -97,5 +98,6 @@ def protected_ping() -> dict[str, str]:
 app.include_router(ready_router)
 app.include_router(version_router)
 app.include_router(predict_router)
+app.include_router(decision_router)
 app.include_router(models_router)
 app.include_router(protected_router)

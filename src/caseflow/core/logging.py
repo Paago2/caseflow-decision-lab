@@ -18,6 +18,9 @@ _EXTRA_KEYS = (
     "model_registry_dir",
     "error_type",
     "error_message",
+    "decision",
+    "score",
+    "model_id",
 )
 _KV_PATTERN = re.compile(
     r"(?P<key>request_id|method|path|status_code|duration_ms)=(?P<value>[^\s]+)"

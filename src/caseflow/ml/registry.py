@@ -14,6 +14,8 @@ class LinearModel:
     bias: float
     weights: list[float]
     feature_names: list[str] | None = None
+    required_names: set[str] | None = None
+    defaults: dict[str, float] | None = None
 
     def predict(self, features: list[float]) -> float:
         if len(features) != len(self.weights):
@@ -35,21 +37,47 @@ class LinearModel:
         expected_names = set(self.feature_names)
         provided_names = set(features.keys())
 
-        missing_names = sorted(expected_names - provided_names)
         extra_names = sorted(provided_names - expected_names)
-
-        if missing_names:
-            raise ValueError(
-                "Missing required feature keys: " + ", ".join(missing_names)
-            )
 
         if extra_names:
             raise ValueError("Unknown feature keys: " + ", ".join(extra_names))
 
+        required_names = self.required_names or set(self.feature_names)
+        defaults = self.defaults or {}
+
+        missing_required = sorted(
+            name for name in required_names if name not in provided_names
+        )
+        if missing_required:
+            raise ValueError(
+                "Missing required feature keys: " + ", ".join(missing_required)
+            )
+
+        missing_optional_without_default = sorted(
+            name
+            for name in self.feature_names
+            if name not in provided_names
+            and name not in required_names
+            and name not in defaults
+        )
+        if missing_optional_without_default:
+            raise ValueError(
+                "Missing optional feature keys with no default: "
+                + ", ".join(missing_optional_without_default)
+            )
+
         try:
-            return [float(features[name]) for name in self.feature_names]
+            vector = [
+                float(features[name]) if name in features else float(defaults[name])
+                for name in self.feature_names
+            ]
         except (TypeError, ValueError) as exc:
             raise ValueError("'features' object values must be numeric") from exc
+
+        if len(vector) != len(self.weights):
+            raise ValueError("'features' object does not match model weight dimensions")
+
+        return vector
 
 
 _active_model: LinearModel | None = None
@@ -120,13 +148,17 @@ def load_model(model_id: str) -> LinearModel:
         ) from exc
 
     feature_names: list[str] | None = None
+    required_names: set[str] | None = None
+    defaults: dict[str, float] | None = None
     if payload_schema is not None:
         if not isinstance(payload_schema, dict):
             raise ValueError(f"Model '{model_id}' has invalid 'schema' section")
 
-        if payload_schema.get("schema_version") != "1":
+        schema_version = payload_schema.get("schema_version")
+        if schema_version not in {"1", "2"}:
             raise ValueError(
-                f"Model '{model_id}' schema_version must be '1' when schema is set"
+                f"Model '{model_id}' schema_version must be '1' or '2' "
+                f"when schema is set"
             )
 
         schema_features = payload_schema.get("features")
@@ -136,6 +168,8 @@ def load_model(model_id: str) -> LinearModel:
             )
 
         parsed_names: list[str] = []
+        parsed_required: set[str] = set()
+        parsed_defaults: dict[str, float] = {}
         for item in schema_features:
             if not isinstance(item, dict):
                 raise ValueError(f"Model '{model_id}' schema features must be objects")
@@ -154,6 +188,25 @@ def load_model(model_id: str) -> LinearModel:
 
             parsed_names.append(name)
 
+            if schema_version == "2":
+                required = item.get("required")
+                if not isinstance(required, bool):
+                    raise ValueError(
+                        f"Model '{model_id}' schema feature '{name}' must define "
+                        f"boolean 'required'"
+                    )
+
+                if required:
+                    parsed_required.add(name)
+                elif "default" in item:
+                    try:
+                        parsed_defaults[name] = float(item["default"])
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError(
+                            f"Model '{model_id}' schema feature '{name}' has "
+                            f"non-numeric 'default'"
+                        ) from exc
+
         if len(parsed_names) != len(set(parsed_names)):
             raise ValueError(f"Model '{model_id}' schema feature names must be unique")
 
@@ -163,6 +216,12 @@ def load_model(model_id: str) -> LinearModel:
             )
 
         feature_names = parsed_names
+        if schema_version == "1":
+            required_names = set(parsed_names)
+            defaults = {}
+        else:
+            required_names = parsed_required
+            defaults = parsed_defaults
 
     return LinearModel(
         model_id=model_id,
@@ -170,6 +229,8 @@ def load_model(model_id: str) -> LinearModel:
         bias=bias,
         weights=weights,
         feature_names=feature_names,
+        required_names=required_names,
+        defaults=defaults,
     )
 
 
