@@ -1,4 +1,4 @@
-.PHONY: up down logs build restart shell run api demo smoke demo-docker pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check golden golden-update
+.PHONY: up down logs build restart shell run api ui ui-build demo smoke demo-docker fullstack-up fullstack-down fullstack-demo pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check golden golden-update
 
 up:
 	docker compose up -d
@@ -27,6 +27,12 @@ api:
 	PORT=$${PORT:-8000} \
 	uv run uvicorn caseflow.api.app:app --reload --port $$PORT
 
+ui:
+	cd frontend && npm run dev
+
+ui-build:
+	cd frontend && npm run build
+
 demo:
 	BASE_URL=$${BASE_URL:-http://localhost:$${PORT:-8000}} bash scripts/demo_mortgage_flow.sh
 
@@ -39,6 +45,22 @@ smoke:
 
 demo-docker:
 	docker compose up -d
+	BASE_URL=$${BASE_URL:-http://localhost:8000} bash scripts/demo_mortgage_flow.sh
+
+fullstack-up:
+	docker compose up -d --build
+
+fullstack-down:
+	docker compose down
+
+fullstack-demo: fullstack-up
+	@base_url="$${BASE_URL:-http://localhost:8000}"; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+		if curl -fsS "$$base_url/health" >/dev/null; then \
+			break; \
+		fi; \
+		sleep 1; \
+	done
 	BASE_URL=$${BASE_URL:-http://localhost:8000} bash scripts/demo_mortgage_flow.sh
 
 pid-8000:

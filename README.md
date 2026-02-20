@@ -64,6 +64,35 @@ The UI defaults to backend calls through Vite proxy (`/api` ->
 VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
+## Mortgage 013: Full-Stack Containerization + CI Checks
+
+Mortgage 013 adds frontend containerization and CI checks for both backend and
+frontend.
+
+Local dev:
+
+```bash
+make api
+make ui
+```
+
+Full-stack Docker:
+
+```bash
+make fullstack-up
+# open http://localhost:3000
+make fullstack-demo
+make fullstack-down
+```
+
+CI notes:
+
+- Backend job uses Python 3.11 + `uv sync --frozen --group dev` and runs:
+  `ruff`, `black --check`, `pytest -q`, and `make golden`.
+- Frontend job uses Node 20 + `npm ci` + `npm run build`.
+- Lockfiles (`uv.lock` and `frontend/package-lock.json`) are used for
+  deterministic installs.
+
 ### System verification checklist
 
 - **/health (liveness):** `curl http://localhost:8000/health`
