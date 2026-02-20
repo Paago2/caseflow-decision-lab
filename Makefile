@@ -1,4 +1,4 @@
-.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check golden golden-update
+.PHONY: up down logs build restart shell run api demo smoke demo-docker pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check golden golden-update
 
 up:
 	docker compose up -d
@@ -20,6 +20,26 @@ shell:
 
 run:
 	uv run uvicorn caseflow.api.app:app --reload --port 8000
+
+api:
+	TRACE_ENABLED=$${TRACE_ENABLED:-true} \
+	UNDERWRITE_PERSIST_RESULTS=$${UNDERWRITE_PERSIST_RESULTS:-true} \
+	PORT=$${PORT:-8000} \
+	uv run uvicorn caseflow.api.app:app --reload --port $$PORT
+
+demo:
+	BASE_URL=$${BASE_URL:-http://localhost:$${PORT:-8000}} bash scripts/demo_mortgage_flow.sh
+
+smoke:
+	@base_url="$${BASE_URL:-http://localhost:$${PORT:-8000}}"; \
+	for path in /health /ready /version; do \
+		code="$$(curl -s -o /dev/null -w '%{http_code}' "$$base_url$$path")"; \
+		echo "$$path -> $$code"; \
+	done
+
+demo-docker:
+	docker compose up -d
+	BASE_URL=$${BASE_URL:-http://localhost:8000} bash scripts/demo_mortgage_flow.sh
 
 pid-8000:
 	@pid="$$(lsof -tiTCP:8000 -sTCP:LISTEN 2>/dev/null || true)"; \

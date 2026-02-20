@@ -21,6 +21,28 @@ make logs
 make down
 ```
 
+### 2-minute demo
+
+Start API (local):
+
+```bash
+make api
+```
+
+In another terminal, run:
+
+```bash
+make smoke
+make demo
+make golden
+```
+
+Toggle demo behavior with env vars (example):
+
+```bash
+TRACE_ENABLED=true JUSTIFIER_PROVIDER=stub_llm make demo
+```
+
 ### System verification checklist
 
 - **/health (liveness):** `curl http://localhost:8000/health`
