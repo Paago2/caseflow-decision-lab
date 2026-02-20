@@ -29,6 +29,8 @@ _EXTRA_KEYS = (
     "char_count",
     "indexed_chunks",
     "top_k",
+    "num_citations",
+    "model_version",
     "next_actions",
     "doc_count",
     "source_summary",

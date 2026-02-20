@@ -6,7 +6,17 @@ from typing import TypedDict
 
 from langgraph.graph import START, StateGraph
 
+from caseflow.domain.mortgage.justification import (
+    Justification,
+    generate_deterministic_justification,
+)
 from caseflow.domain.mortgage.policy import evaluate_mortgage_policy_v1
+from caseflow.domain.mortgage.tools import (
+    RiskScoreResult,
+    tool_evidence_search,
+    tool_policy_check,
+    tool_risk_score,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +36,79 @@ class UnderwriterAgentResult:
     derived: dict[str, float]
     next_actions: list[str]
     request_id: str
+
+
+@dataclass(frozen=True)
+class UnderwriteResult:
+    decision: str
+    risk_score: float
+    model_id: str
+    policy: dict[str, object]
+    justification: Justification
+
+
+def _build_evidence_query(payload: dict[str, object]) -> str:
+    ordered_keys = [
+        "credit_score",
+        "monthly_income",
+        "monthly_debt",
+        "loan_amount",
+        "property_value",
+        "occupancy",
+    ]
+    parts: list[str] = []
+    for key in ordered_keys:
+        value = payload.get(key)
+        if value is not None:
+            parts.append(f"{key}={value}")
+
+    if "monthly_income" in payload and "monthly_debt" in payload:
+        try:
+            income = float(payload["monthly_income"])
+            debt = float(payload["monthly_debt"])
+            dti = debt / income if income > 0 else 0.0
+            parts.append(f"dti={dti:.4f}")
+        except (TypeError, ValueError):
+            pass
+
+    return " | ".join(parts)
+
+
+def underwrite_case_with_justification(
+    case_id: str,
+    payload: dict[str, object],
+    *,
+    model_version: str | None = None,
+    evidence_query: str | None = None,
+    top_k: int = 5,
+) -> UnderwriteResult:
+    policy_result = tool_policy_check(payload)
+    risk_result: RiskScoreResult = tool_risk_score(payload, model_version)
+
+    query = evidence_query.strip() if isinstance(evidence_query, str) else ""
+    if not query:
+        query = _build_evidence_query(payload)
+
+    evidence = tool_evidence_search(case_id=case_id, query=query, top_k=top_k)
+    justification = generate_deterministic_justification(
+        decision=policy_result.decision,
+        policy_reasons=policy_result.reasons,
+        risk_score=risk_result.score,
+        evidence_results=evidence,
+    )
+
+    return UnderwriteResult(
+        decision=policy_result.decision,
+        risk_score=risk_result.score,
+        model_id=risk_result.model_id,
+        policy={
+            "policy_id": policy_result.policy_id,
+            "decision": policy_result.decision,
+            "reasons": policy_result.reasons,
+            "derived": policy_result.derived,
+        },
+        justification=justification,
+    )
 
 
 class UnderwriterState(TypedDict):
