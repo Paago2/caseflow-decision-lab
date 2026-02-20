@@ -135,6 +135,68 @@ export AUDIT_JSONL_PATH=artifacts/events/decision_events.jsonl
 
 Each successful `/decision` call appends one JSON object line to the sink.
 
+## Mortgage 001: Deterministic Underwriting Policy
+
+Endpoint:
+
+```bash
+POST /mortgage/decision
+```
+
+Example payload:
+
+```json
+{
+  "features": {
+    "credit_score": 720,
+    "monthly_income": 10000,
+    "monthly_debt": 3000,
+    "loan_amount": 300000,
+    "property_value": 500000,
+    "occupancy": "primary"
+  }
+}
+```
+
+Example approve response:
+
+```json
+{
+  "policy_id": "mortgage_v1",
+  "decision": "approve",
+  "reasons": ["APPROVE_POLICY_V1"],
+  "derived": {"dti": 0.3, "ltv": 0.6},
+  "request_id": "..."
+}
+```
+
+Example review response:
+
+```json
+{
+  "policy_id": "mortgage_v1",
+  "decision": "review",
+  "reasons": ["REVIEW_CREDIT_BORDERLINE"],
+  "derived": {"dti": 0.3, "ltv": 0.6},
+  "request_id": "..."
+}
+```
+
+Example decline response:
+
+```json
+{
+  "policy_id": "mortgage_v1",
+  "decision": "decline",
+  "reasons": ["DECLINE_CREDIT_TOO_LOW"],
+  "derived": {"dti": 0.3, "ltv": 0.6},
+  "request_id": "..."
+}
+```
+
+Reason codes identify which underwriting rule triggered review/decline.
+Derived metrics (`dti`, `ltv`) are included for transparent debugging.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

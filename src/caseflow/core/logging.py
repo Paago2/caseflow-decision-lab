@@ -21,6 +21,8 @@ _EXTRA_KEYS = (
     "decision",
     "score",
     "model_id",
+    "policy_version",
+    "policy_id",
 )
 _KV_PATTERN = re.compile(
     r"(?P<key>request_id|method|path|status_code|duration_ms)=(?P<value>[^\s]+)"

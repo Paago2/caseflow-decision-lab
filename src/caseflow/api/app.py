@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI, Security
 from caseflow.api.routes_decision import router as decision_router
 from caseflow.api.routes_metrics import router as metrics_router
 from caseflow.api.routes_models import router as models_router
+from caseflow.api.routes_mortgage import router as mortgage_router
 from caseflow.api.routes_predict import router as predict_router
 from caseflow.api.routes_ready import router as ready_router
 from caseflow.api.routes_version import router as version_router
@@ -14,6 +15,7 @@ from caseflow.core.auth import require_api_key
 from caseflow.core.errors import install_error_handlers
 from caseflow.core.logging import configure_logging
 from caseflow.core.metrics import clear_metrics, install_metrics_middleware
+from caseflow.core.policy import clear_policy_cache
 from caseflow.core.rate_limit import (
     clear_rate_limiter_cache,
     install_rate_limit_middleware,
@@ -45,6 +47,7 @@ async def lifespan(app: FastAPI):
     clear_rate_limiter_cache()
     clear_audit_sink_cache()
     clear_metrics()
+    clear_policy_cache()
 
     try:
         set_active_model(settings.active_model_id)
@@ -86,6 +89,7 @@ async def lifespan(app: FastAPI):
         clear_rate_limiter_cache()
         clear_audit_sink_cache()
         clear_metrics()
+        clear_policy_cache()
 
 
 app = FastAPI(title="caseflow-decision-lab API", lifespan=lifespan)
@@ -115,5 +119,6 @@ app.include_router(version_router)
 app.include_router(metrics_router)
 app.include_router(predict_router)
 app.include_router(decision_router)
+app.include_router(mortgage_router)
 app.include_router(models_router)
 app.include_router(protected_router)

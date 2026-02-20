@@ -1,0 +1,10 @@
+policy_version: "mortgage_v1"
+thresholds:
+  approve:
+    min_credit_score: 700
+    max_ltv: 0.80
+    max_dti: 0.43
+  review:
+    min_credit_score: 620
+    max_ltv: 0.90
+    max_dti: 0.50
