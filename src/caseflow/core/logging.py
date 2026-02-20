@@ -25,6 +25,9 @@ _EXTRA_KEYS = (
     "policy_id",
     "case_id",
     "next_actions",
+    "doc_count",
+    "source_summary",
+    "missing_count",
 )
 _KV_PATTERN = re.compile(
     r"(?P<key>request_id|method|path|status_code|duration_ms)=(?P<value>[^\s]+)"

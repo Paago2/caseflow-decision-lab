@@ -246,6 +246,91 @@ Example response:
 `next_actions` are deterministic placeholders for future tool integrations
 (for example OCR, retrieval/RAG, and external risk scoring services).
 
+## Mortgage 002: Document Intake + Extraction
+
+This slice adds public endpoints that accept structured JSON documents as a
+stand-in for OCR output. We start with JSON-first ingestion so policy and
+underwriting logic can be developed and validated before introducing OCR
+complexity and document storage.
+
+Endpoint:
+
+```bash
+POST /documents/intake
+```
+
+Example intake payload:
+
+```json
+{
+  "case_id": "case_123",
+  "documents": [
+    {"document_type": "paystub", "gross_monthly_income": 8500},
+    {
+      "document_type": "credit_summary",
+      "credit_score": 705,
+      "total_monthly_debt": 2200
+    },
+    {"document_type": "property_valuation", "property_value": 450000}
+  ]
+}
+```
+
+Example intake response:
+
+```json
+{
+  "case_id": "case_123",
+  "extracted_features": {
+    "gross_monthly_income": 8500.0,
+    "total_monthly_debt": 2200.0,
+    "credit_score": 705.0,
+    "property_value": 450000.0
+  },
+  "missing": ["loan_amount", "occupancy"],
+  "source_summary": {
+    "paystub": 1,
+    "credit_summary": 1,
+    "property_valuation": 1
+  },
+  "request_id": "..."
+}
+```
+
+Endpoint:
+
+```bash
+POST /documents/decision
+```
+
+Example decision payload (same shape as intake):
+
+```json
+{
+  "case_id": "case_123",
+  "documents": [
+    {"document_type": "paystub", "gross_monthly_income": 10000},
+    {
+      "document_type": "credit_summary",
+      "credit_score": 760,
+      "total_monthly_debt": 3000
+    },
+    {"document_type": "property_valuation", "property_value": 500000},
+    {
+      "document_type": "loan_application",
+      "loan_amount": 300000,
+      "occupancy": "primary"
+    }
+  ]
+}
+```
+
+`/documents/intake` produces a normalized feature map for downstream use.
+`/documents/decision` runs the same extraction and then evaluates mortgage
+policy directly in-process, returning decision + reasons + derived metrics.
+The extracted features can also be passed to `/mortgage/decision` and
+`/underwriter/run` (with key renaming for monthly income/debt conventions).
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:
