@@ -26,6 +26,10 @@ class Settings:
     evidence_index_dir: str = "artifacts/evidence_index"
     evidence_min_score: float = 0.15
     evidence_max_citations: int = 3
+    underwrite_engine: str = "graph"
+    justifier_provider: str = "deterministic"
+    trace_dir: str = "artifacts/traces"
+    trace_enabled: bool = False
     ocr_engine: str = "noop"
 
 
@@ -74,6 +78,15 @@ def _validate_settings(settings: Settings) -> None:
     if settings.evidence_max_citations < 0:
         raise ValueError("EVIDENCE_MAX_CITATIONS must be >= 0.")
 
+    if settings.underwrite_engine not in {"graph", "legacy"}:
+        raise ValueError("UNDERWRITE_ENGINE must be one of: graph, legacy.")
+
+    if settings.justifier_provider not in {"deterministic", "stub_llm"}:
+        raise ValueError("JUSTIFIER_PROVIDER must be one of: deterministic, stub_llm.")
+
+    if not settings.trace_dir.strip():
+        raise ValueError("TRACE_DIR must be set and non-empty.")
+
     if settings.ocr_engine not in {"noop", "tesseract"}:
         raise ValueError("OCR_ENGINE must be one of: noop, tesseract.")
 
@@ -113,6 +126,10 @@ def get_settings() -> Settings:
             ),
             evidence_min_score=float(os.getenv("EVIDENCE_MIN_SCORE", "0.15")),
             evidence_max_citations=int(os.getenv("EVIDENCE_MAX_CITATIONS", "3")),
+            underwrite_engine=os.getenv("UNDERWRITE_ENGINE", "graph"),
+            justifier_provider=os.getenv("JUSTIFIER_PROVIDER", "deterministic"),
+            trace_dir=os.getenv("TRACE_DIR", "artifacts/traces"),
+            trace_enabled=_env_bool("TRACE_ENABLED", False),
             ocr_engine=os.getenv("OCR_ENGINE", "noop"),
         )
         _validate_settings(candidate)
