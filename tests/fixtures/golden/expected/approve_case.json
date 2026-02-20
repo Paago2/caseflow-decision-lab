@@ -1,0 +1,33 @@
+{
+  "case_id": "golden_approve_001",
+  "decision": "approve",
+  "justification": {
+    "citations": [
+      {
+        "chunk_id": "82e75496a18b9d77",
+        "document_id": "c14fa47e3959e1a5",
+        "end_char": 83,
+        "score": 0.040656,
+        "start_char": 0
+      }
+    ],
+    "reasons": [
+      "Policy signals: APPROVE_POLICY_V1 (see C1).",
+      "Risk score is 0.6565 in the low band (see C1)."
+    ],
+    "summary": "Policy decision is approve. Deterministic risk score is 0.6565 (low band)."
+  },
+  "policy": {
+    "decision": "approve",
+    "derived": {
+      "dti": 0.15,
+      "ltv": 0.488889
+    },
+    "policy_id": "mortgage_v1",
+    "reasons": [
+      "APPROVE_POLICY_V1"
+    ]
+  },
+  "risk_score": 0.656503,
+  "schema_version": "v1"
+}

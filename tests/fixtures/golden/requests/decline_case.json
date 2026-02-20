@@ -1,0 +1,23 @@
+{
+  "case_id": "golden_decline_001",
+  "underwrite_engine": "graph",
+  "justifier_provider": "deterministic",
+  "evidence_documents": [
+    {
+      "filename": "decline_credit.txt",
+      "text": "Credit history shows severe delinquencies and high revolving utilization."
+    }
+  ],
+  "underwrite_request": {
+    "payload": {
+      "credit_score": 560,
+      "monthly_income": 7000,
+      "monthly_debt": 2800,
+      "loan_amount": 260000,
+      "property_value": 320000,
+      "occupancy": "investment"
+    },
+    "model_version": "baseline_v1",
+    "top_k": 5
+  }
+}

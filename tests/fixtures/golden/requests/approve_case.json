@@ -1,0 +1,23 @@
+{
+  "case_id": "golden_approve_001",
+  "underwrite_engine": "graph",
+  "justifier_provider": "deterministic",
+  "evidence_documents": [
+    {
+      "filename": "approve_income.txt",
+      "text": "Stable payroll records, strong reserves, and low debt obligations support approval."
+    }
+  ],
+  "underwrite_request": {
+    "payload": {
+      "credit_score": 760,
+      "monthly_income": 12000,
+      "monthly_debt": 1800,
+      "loan_amount": 220000,
+      "property_value": 450000,
+      "occupancy": "primary"
+    },
+    "model_version": "baseline_v1",
+    "top_k": 5
+  }
+}

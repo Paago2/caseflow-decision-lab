@@ -1,0 +1,34 @@
+{
+  "case_id": "golden_decline_001",
+  "decision": "decline",
+  "justification": {
+    "citations": [
+      {
+        "chunk_id": "507d5d48047cee67",
+        "document_id": "a18863fc1574a458",
+        "end_char": 73,
+        "score": 0.0,
+        "start_char": 0
+      }
+    ],
+    "reasons": [
+      "Policy signals: DECLINE_CREDIT_TOO_LOW, DECLINE_INVESTMENT_CREDIT_TOO_LOW (see C1).",
+      "Risk score is 0.5300 in the low band (see C1)."
+    ],
+    "summary": "Policy decision is decline. Deterministic risk score is 0.5300 (low band)."
+  },
+  "policy": {
+    "decision": "decline",
+    "derived": {
+      "dti": 0.4,
+      "ltv": 0.8125
+    },
+    "policy_id": "mortgage_v1",
+    "reasons": [
+      "DECLINE_CREDIT_TOO_LOW",
+      "DECLINE_INVESTMENT_CREDIT_TOO_LOW"
+    ]
+  },
+  "risk_score": 0.530037,
+  "schema_version": "v1"
+}
