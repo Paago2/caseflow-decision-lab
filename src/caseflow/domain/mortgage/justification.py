@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from caseflow.core.settings import get_settings
 from caseflow.ml.vector_store import SearchResult
 
 
@@ -28,11 +29,12 @@ def generate_deterministic_justification(
     risk_score: float,
     evidence_results: list[SearchResult],
 ) -> Justification:
+    max_citations = get_settings().evidence_max_citations
     ordered = sorted(
         evidence_results,
         key=lambda item: (-item.score, item.chunk.chunk_id),
     )
-    top = ordered[:3]
+    top = ordered[:max_citations] if max_citations > 0 else []
 
     citations = [
         Citation(
