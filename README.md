@@ -527,6 +527,34 @@ END
 This keeps node boundaries clean so `justify` can later be replaced with real
 LLM/tool-calling, while preserving deterministic behavior today.
 
+## Mortgage 008: Justifier Provider Seam + Underwrite Trace Capture
+
+Mortgage 008 formalizes the justify-node swap seam and adds optional graph
+trace persistence.
+
+New settings:
+
+- `UNDERWRITE_ENGINE=graph|legacy` (default: `graph`)
+- `JUSTIFIER_PROVIDER=deterministic|stub_llm` (default: `deterministic`)
+- `TRACE_ENABLED=true|false` (default: `false`)
+- `TRACE_DIR` (default: `artifacts/traces`)
+
+Provider behavior:
+
+- `deterministic`: existing deterministic justification behavior
+- `stub_llm`: deterministic stub that mimics tool-calling transcript metadata
+  while returning the same `Justification` schema
+
+Trace retrieval endpoint:
+
+```bash
+curl -sS \
+  "http://localhost:8000/mortgage/case_ocr_001/underwrite/trace?request_id=<REQUEST_ID>"
+```
+
+Trace payload includes node-level outputs (decision, score, chunk_ids,
+citations) and durations; raw evidence text is not included in trace outputs.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

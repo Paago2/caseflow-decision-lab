@@ -87,6 +87,10 @@ def test_mortgage_underwrite_has_no_security_requirement_in_openapi() -> None:
     openapi = response.json()
 
     assert "security" not in openapi["paths"]["/mortgage/{case_id}/underwrite"]["post"]
+    assert (
+        "security"
+        not in openapi["paths"]["/mortgage/{case_id}/underwrite/trace"]["get"]
+    )
 
 
 def test_documents_endpoints_have_no_security_requirement_in_openapi() -> None:

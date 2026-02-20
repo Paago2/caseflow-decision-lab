@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from caseflow.agents.underwriter_agent import (
     UnderwriterCase,
     run_underwriter_agent,
     underwrite_case_with_justification,
 )
+from caseflow.agents.underwriter_graph import load_underwrite_trace
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -215,4 +216,39 @@ async def mortgage_underwrite_endpoint(
             ],
         },
         "request_id": request_id,
+    }
+
+
+@router.get("/mortgage/{case_id}/underwrite/trace")
+async def mortgage_underwrite_trace_endpoint(
+    case_id: str,
+    request: Request,
+    request_id: str = Query(..., min_length=1),
+) -> dict[str, object]:
+    normalized_case_id = case_id.strip()
+    if not normalized_case_id:
+        raise HTTPException(
+            status_code=422,
+            detail="'case_id' must be a non-empty string",
+        )
+
+    normalized_request_id = request_id.strip()
+    if not normalized_request_id:
+        raise HTTPException(
+            status_code=422,
+            detail="'request_id' must be a non-empty string",
+        )
+
+    try:
+        trace = load_underwrite_trace(normalized_case_id, normalized_request_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    response_request_id = getattr(request.state, "request_id", "") or ""
+    return {
+        "case_id": normalized_case_id,
+        "request_id": response_request_id,
+        "trace": trace,
     }

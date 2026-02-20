@@ -7,6 +7,7 @@ from typing import TypedDict
 from langgraph.graph import START, StateGraph
 
 from caseflow.agents.underwriter_graph import run_underwrite_graph
+from caseflow.core.settings import get_settings
 from caseflow.domain.mortgage.justification import (
     Justification,
     generate_deterministic_justification,
@@ -84,6 +85,16 @@ def underwrite_case_with_justification(
     top_k: int = 5,
     request_id: str = "",
 ) -> UnderwriteResult:
+    settings = get_settings()
+    if settings.underwrite_engine == "legacy":
+        return underwrite_case_with_justification_legacy(
+            case_id,
+            payload,
+            model_version=model_version,
+            evidence_query=evidence_query,
+            top_k=top_k,
+        )
+
     final_state = run_underwrite_graph(
         {
             "case_id": case_id,
@@ -99,6 +110,8 @@ def underwrite_case_with_justification(
             "justification": {},
             "decision": "review",
             "chunk_ids_used": [],
+            "trace_events": [],
+            "justifier_transcript": {},
         }
     )
 
