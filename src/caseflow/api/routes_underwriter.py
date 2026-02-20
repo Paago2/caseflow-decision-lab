@@ -12,6 +12,7 @@ from caseflow.agents.underwriter_agent import (
     underwrite_case_with_justification,
 )
 from caseflow.core.audit import get_audit_sink
+from caseflow.core.metrics import increment_metric
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -185,6 +186,9 @@ async def mortgage_underwrite_endpoint(
     citation_chunk_ids = [
         citation.chunk_id for citation in result.justification.citations
     ]
+    increment_metric("underwrite_citations_total", float(len(citation_chunk_ids)))
+    if citation_chunk_ids:
+        increment_metric("underwrite_with_citations_total")
 
     logger.info(
         "mortgage_underwrite_completed",

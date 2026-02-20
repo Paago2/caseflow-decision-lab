@@ -36,6 +36,9 @@ class _MetricsStore:
         self._lock = Lock()
         self._request_counts: dict[tuple[str, str, str], int] = {}
         self._duration_histograms: dict[tuple[str, str], _HistogramSeries] = {}
+        self._counters: dict[str, float] = {}
+        self._gauges: dict[str, float] = {}
+        self._ms_summaries: dict[str, tuple[int, float]] = {}
 
     def observe_request(
         self, *, method: str, path: str, status: str, duration_seconds: float
@@ -105,6 +108,22 @@ class _MetricsStore:
                     f"}} {series.total_count}"
                 )
 
+            if self._counters:
+                lines.append("# TYPE caseflow_counter_total counter")
+                for name, value in sorted(self._counters.items()):
+                    lines.append(f"{name} {value}")
+
+            if self._ms_summaries:
+                lines.append("# TYPE caseflow_ms_summary summary")
+                for name, (count, total_ms) in sorted(self._ms_summaries.items()):
+                    lines.append(f"{name}_count {count}")
+                    lines.append(f"{name}_sum {total_ms}")
+
+            if self._gauges:
+                lines.append("# TYPE caseflow_gauge gauge")
+                for name, value in sorted(self._gauges.items()):
+                    lines.append(f"{name} {value}")
+
         lines.append("")
         return "\n".join(lines)
 
@@ -112,6 +131,22 @@ class _MetricsStore:
         with self._lock:
             self._request_counts.clear()
             self._duration_histograms.clear()
+            self._counters.clear()
+            self._gauges.clear()
+            self._ms_summaries.clear()
+
+    def increment(self, name: str, value: float = 1.0) -> None:
+        with self._lock:
+            self._counters[name] = self._counters.get(name, 0.0) + value
+
+    def set_gauge(self, name: str, value: float) -> None:
+        with self._lock:
+            self._gauges[name] = value
+
+    def observe_ms(self, name: str, value_ms: float) -> None:
+        with self._lock:
+            count, total = self._ms_summaries.get(name, (0, 0.0))
+            self._ms_summaries[name] = (count + 1, total + value_ms)
 
 
 _metrics_store = _MetricsStore()
@@ -123,6 +158,18 @@ def render_metrics_text() -> str:
 
 def clear_metrics() -> None:
     _metrics_store.clear()
+
+
+def increment_metric(name: str, value: float = 1.0) -> None:
+    _metrics_store.increment(name, value)
+
+
+def set_gauge_metric(name: str, value: float) -> None:
+    _metrics_store.set_gauge(name, value)
+
+
+def observe_ms_metric(name: str, value_ms: float) -> None:
+    _metrics_store.observe_ms(name, value_ms)
 
 
 def install_metrics_middleware(app: FastAPI) -> None:

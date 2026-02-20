@@ -469,6 +469,42 @@ Flow runbook:
 2. Index provenance text via `/mortgage/{case_id}/evidence/index`.
 3. Run `/mortgage/{case_id}/underwrite` for decision + justification + citations.
 
+## Mortgage 006: Evidence Lifecycle + Observability + Guardrails
+
+This slice hardens evidence operations with lifecycle endpoints, score-based
+guardrails, and low-cardinality metrics.
+
+New lifecycle endpoints:
+
+- `GET /mortgage/{case_id}/evidence/stats`
+- `DELETE /mortgage/{case_id}/evidence`
+- `POST /mortgage/{case_id}/evidence/reindex`
+
+Guardrail settings:
+
+- `EVIDENCE_MIN_SCORE` (default: `0.15`)
+- `EVIDENCE_MAX_CITATIONS` (default: `3`)
+
+These reduce weak retrieval matches and cap citation volume for safer,
+deterministic justification output.
+
+Example lifecycle calls:
+
+```bash
+curl -sS http://localhost:8000/mortgage/case_ocr_001/evidence/stats
+```
+
+```bash
+curl -sS -X POST \
+  http://localhost:8000/mortgage/case_ocr_001/evidence/reindex \
+  -H "Content-Type: application/json" \
+  -d '{"documents":[{"document_id":"6cba8bb56e2f0f89"}]}'
+```
+
+```bash
+curl -sS -X DELETE http://localhost:8000/mortgage/case_ocr_001/evidence
+```
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

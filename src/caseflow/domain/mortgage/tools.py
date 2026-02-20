@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from caseflow.core.settings import get_settings
 from caseflow.domain.mortgage.policy import (
     MortgageDecision,
     evaluate_mortgage_policy_v1,
@@ -84,4 +85,10 @@ def tool_evidence_search(
     query: str,
     top_k: int = 5,
 ) -> list[SearchResult]:
-    return FileVectorStore().search(query=query, top_k=top_k, case_id=case_id)
+    min_score = get_settings().evidence_min_score
+    return FileVectorStore().search(
+        query=query,
+        top_k=top_k,
+        case_id=case_id,
+        min_score=min_score,
+    )

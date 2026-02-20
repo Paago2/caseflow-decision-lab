@@ -123,6 +123,14 @@ def test_evidence_endpoints_have_no_security_requirement_in_openapi() -> None:
     assert (
         "security" not in openapi["paths"]["/mortgage/{case_id}/evidence/search"]["get"]
     )
+    assert (
+        "security" not in openapi["paths"]["/mortgage/{case_id}/evidence/stats"]["get"]
+    )
+    assert (
+        "security"
+        not in openapi["paths"]["/mortgage/{case_id}/evidence/reindex"]["post"]
+    )
+    assert "security" not in openapi["paths"]["/mortgage/{case_id}/evidence"]["delete"]
 
 
 def test_models_endpoints_have_security_requirement_in_openapi() -> None:

@@ -24,6 +24,8 @@ class Settings:
     audit_jsonl_path: str = "artifacts/events/decision_events.jsonl"
     provenance_dir: str = "artifacts/provenance"
     evidence_index_dir: str = "artifacts/evidence_index"
+    evidence_min_score: float = 0.15
+    evidence_max_citations: int = 3
     ocr_engine: str = "noop"
 
 
@@ -69,6 +71,9 @@ def _validate_settings(settings: Settings) -> None:
     if not settings.evidence_index_dir.strip():
         raise ValueError("EVIDENCE_INDEX_DIR must be set and non-empty.")
 
+    if settings.evidence_max_citations < 0:
+        raise ValueError("EVIDENCE_MAX_CITATIONS must be >= 0.")
+
     if settings.ocr_engine not in {"noop", "tesseract"}:
         raise ValueError("OCR_ENGINE must be one of: noop, tesseract.")
 
@@ -106,6 +111,8 @@ def get_settings() -> Settings:
             evidence_index_dir=os.getenv(
                 "EVIDENCE_INDEX_DIR", "artifacts/evidence_index"
             ),
+            evidence_min_score=float(os.getenv("EVIDENCE_MIN_SCORE", "0.15")),
+            evidence_max_citations=int(os.getenv("EVIDENCE_MAX_CITATIONS", "3")),
             ocr_engine=os.getenv("OCR_ENGINE", "noop"),
         )
         _validate_settings(candidate)

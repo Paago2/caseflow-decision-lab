@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,8 @@ class SearchResult:
 
 
 class FileVectorStore:
+    _CACHE: dict[str, tuple[float | None, list[dict[str, Any]]]] = {}
+
     def __init__(self, index_file: Path | None = None, dims: int = 128):
         if dims <= 0:
             raise ValueError("dims must be > 0")
@@ -31,8 +34,24 @@ class FileVectorStore:
 
         self._index_file.parent.mkdir(parents=True, exist_ok=True)
 
-    def _load_records(self) -> list[dict[str, Any]]:
+    def _cache_key(self) -> str:
+        return str(self._index_file.resolve())
+
+    def _index_mtime(self) -> float | None:
         if not self._index_file.is_file():
+            return None
+        return self._index_file.stat().st_mtime
+
+    def _load_records(self) -> list[dict[str, Any]]:
+        cache_key = self._cache_key()
+        mtime = self._index_mtime()
+        cached = self._CACHE.get(cache_key)
+        if cached is not None and cached[0] == mtime:
+            return [dict(item) for item in cached[1]]
+
+        if mtime is None:
+            records: list[dict[str, Any]] = []
+            self._CACHE[cache_key] = (None, records)
             return []
 
         try:
@@ -49,12 +68,17 @@ class FileVectorStore:
         for item in payload:
             if isinstance(item, dict):
                 validated.append(item)
+        self._CACHE[cache_key] = (mtime, [dict(item) for item in validated])
         return validated
 
     def _write_records(self, records: list[dict[str, Any]]) -> None:
         self._index_file.write_text(
             json.dumps(records, separators=(",", ":"), sort_keys=True),
             encoding="utf-8",
+        )
+        self._CACHE[self._cache_key()] = (
+            self._index_mtime(),
+            [dict(item) for item in records],
         )
 
     def _record_from_chunk(self, chunk: EvidenceChunk) -> dict[str, Any]:
@@ -115,7 +139,11 @@ class FileVectorStore:
         return len(chunks)
 
     def search(
-        self, query: str, top_k: int = 5, case_id: str | None = None
+        self,
+        query: str,
+        top_k: int = 5,
+        case_id: str | None = None,
+        min_score: float | None = None,
     ) -> list[SearchResult]:
         if top_k <= 0:
             raise ValueError("top_k must be > 0")
@@ -154,6 +182,8 @@ class FileVectorStore:
                 ),
             )
             score = cosine_similarity(query_vector, vector)
+            if min_score is not None and score < min_score:
+                continue
             results.append(SearchResult(chunk=chunk, score=score))
 
         results.sort(
@@ -164,3 +194,43 @@ class FileVectorStore:
             )
         )
         return results[:top_k]
+
+    def case_stats(self, case_id: str) -> dict[str, object]:
+        records = self._load_records()
+        doc_counts: dict[str, int] = {}
+        num_chunks = 0
+        for record in records:
+            if str(record.get("case_id", "")) != case_id:
+                continue
+            num_chunks += 1
+            document_id = str(record.get("document_id", ""))
+            doc_counts[document_id] = doc_counts.get(document_id, 0) + 1
+
+        updated_at = None
+        mtime = self._index_mtime()
+        if mtime is not None:
+            updated_at = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+
+        return {
+            "num_chunks": num_chunks,
+            "documents": [
+                {"document_id": doc_id, "num_chunks": count}
+                for doc_id, count in sorted(doc_counts.items())
+            ],
+            "updated_at": updated_at,
+        }
+
+    def delete_case(self, case_id: str) -> int:
+        records = self._load_records()
+        kept: list[dict[str, Any]] = []
+        deleted = 0
+        for record in records:
+            if str(record.get("case_id", "")) == case_id:
+                deleted += 1
+            else:
+                kept.append(record)
+
+        self._write_records(kept)
+        return deleted

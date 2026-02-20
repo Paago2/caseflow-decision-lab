@@ -11,6 +11,7 @@ def test_underwrite_endpoint_returns_citations_in_stable_order(
 ) -> None:
     monkeypatch.setenv("PROVENANCE_DIR", str(tmp_path / "provenance"))
     monkeypatch.setenv("EVIDENCE_INDEX_DIR", str(tmp_path / "evidence_index"))
+    monkeypatch.setenv("EVIDENCE_MIN_SCORE", "0.0")
     monkeypatch.setenv("OCR_ENGINE", "noop")
     clear_settings_cache()
 
