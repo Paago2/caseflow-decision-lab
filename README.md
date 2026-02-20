@@ -555,6 +555,37 @@ curl -sS \
 Trace payload includes node-level outputs (decision, score, chunk_ids,
 citations) and durations; raw evidence text is not included in trace outputs.
 
+## Mortgage 009: Versioned Underwrite Contract + Persistence + Replay
+
+Mortgage 009 adds a versioned underwrite response contract, optional result
+artifact persistence, and deterministic replay.
+
+Underwrite response now includes:
+
+- `schema_version: "v1"`
+
+while keeping existing response fields intact.
+
+New settings:
+
+- `UNDERWRITE_RESULTS_DIR` (default: `artifacts/underwrite_results`)
+- `UNDERWRITE_PERSIST_RESULTS=true|false` (default: `false`)
+
+When persistence is enabled, the API stores:
+
+- result: `{UNDERWRITE_RESULTS_DIR}/{case_id}/{request_id}.json`
+- request context: `{UNDERWRITE_RESULTS_DIR}/{case_id}/{request_id}_request.json`
+
+Replay endpoint:
+
+```bash
+curl -sS -X POST \
+  "http://localhost:8000/mortgage/case_ocr_001/underwrite/replay?request_id=<REQUEST_ID>"
+```
+
+Replay deterministically reruns underwriting with stored request inputs and
+captured engine/provider settings, then returns a v1 contract response.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

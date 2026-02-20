@@ -30,6 +30,8 @@ class Settings:
     justifier_provider: str = "deterministic"
     trace_dir: str = "artifacts/traces"
     trace_enabled: bool = False
+    underwrite_results_dir: str = "artifacts/underwrite_results"
+    underwrite_persist_results: bool = False
     ocr_engine: str = "noop"
 
 
@@ -87,6 +89,9 @@ def _validate_settings(settings: Settings) -> None:
     if not settings.trace_dir.strip():
         raise ValueError("TRACE_DIR must be set and non-empty.")
 
+    if not settings.underwrite_results_dir.strip():
+        raise ValueError("UNDERWRITE_RESULTS_DIR must be set and non-empty.")
+
     if settings.ocr_engine not in {"noop", "tesseract"}:
         raise ValueError("OCR_ENGINE must be one of: noop, tesseract.")
 
@@ -130,6 +135,10 @@ def get_settings() -> Settings:
             justifier_provider=os.getenv("JUSTIFIER_PROVIDER", "deterministic"),
             trace_dir=os.getenv("TRACE_DIR", "artifacts/traces"),
             trace_enabled=_env_bool("TRACE_ENABLED", False),
+            underwrite_results_dir=os.getenv(
+                "UNDERWRITE_RESULTS_DIR", "artifacts/underwrite_results"
+            ),
+            underwrite_persist_results=_env_bool("UNDERWRITE_PERSIST_RESULTS", False),
             ocr_engine=os.getenv("OCR_ENGINE", "noop"),
         )
         _validate_settings(candidate)
