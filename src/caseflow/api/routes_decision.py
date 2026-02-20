@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 
 from caseflow.core.audit import get_audit_sink
+from caseflow.core.policy import evaluate_policy, load_policy
 from caseflow.ml.registry import get_active_model
 
 router = APIRouter()
@@ -55,15 +56,30 @@ async def decision_endpoint(request: Request) -> dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if score >= APPROVE_THRESHOLD:
-        decision = "approve"
-        reasons = ["score_above_approve_threshold"]
-    elif score <= DECLINE_THRESHOLD:
-        decision = "decline"
-        reasons = ["score_below_decline_threshold"]
-    else:
-        decision = "review"
-        reasons = ["score_in_review_band"]
+    policy = load_policy()
+    policy_version = str(policy["policy_version"])
+
+    policy_features: dict[str, Any] = {}
+    if isinstance(features, dict):
+        policy_features = features
+    elif model.feature_names is not None and isinstance(features, list):
+        if len(features) == len(model.feature_names):
+            policy_features = {
+                name: value for name, value in zip(model.feature_names, features)
+            }
+
+    try:
+        decision, reasons = evaluate_policy(policy_features)
+    except ValueError:
+        if score >= APPROVE_THRESHOLD:
+            decision = "approve"
+            reasons = ["score_above_approve_threshold"]
+        elif score <= DECLINE_THRESHOLD:
+            decision = "decline"
+            reasons = ["score_below_decline_threshold"]
+        else:
+            decision = "review"
+            reasons = ["score_in_review_band"]
 
     request_id = getattr(request.state, "request_id", "") or ""
     logger.info(
@@ -82,6 +98,7 @@ async def decision_endpoint(request: Request) -> dict[str, Any]:
         "request_id": request_id,
         "model_id": model.model_id,
         "score": score,
+        "policy_version": policy_version,
         "decision": decision,
         "reasons": reasons,
     }
@@ -104,5 +121,6 @@ async def decision_endpoint(request: Request) -> dict[str, Any]:
         "score": score,
         "decision": decision,
         "reasons": reasons,
+        "policy_version": policy_version,
         "request_id": request_id,
     }

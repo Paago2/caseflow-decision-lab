@@ -59,6 +59,16 @@ def test_metrics_has_no_security_requirement_in_openapi() -> None:
     assert "security" not in openapi["paths"]["/metrics"]["get"]
 
 
+def test_mortgage_decision_has_no_security_requirement_in_openapi() -> None:
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    openapi = response.json()
+
+    assert "security" not in openapi["paths"]["/mortgage/decision"]["post"]
+
+
 def test_models_endpoints_have_security_requirement_in_openapi() -> None:
     client = TestClient(app)
     response = client.get("/openapi.json")
