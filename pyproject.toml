@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.129.0",
+  "langgraph>=0.2.20",
   "prometheus-client>=0.20",
   "pydantic>=2.12.5",
   "python-dotenv>=1.2.1",
@@ -32,6 +33,8 @@ notebook = [
   "pandas>=2.2.0",
 ]
 ml = [
+  "langchain-community>=0.3.0",
+  "langchain-core>=0.3.0",
   "matplotlib>=3.9",
   "numpy>=2.0.0",
   "pyarrow>=16",

@@ -12,6 +12,9 @@ class MortgageDecision:
 
 
 def evaluate_mortgage_policy_v1(payload: dict[str, object]) -> MortgageDecision:
+    if "features" in payload and isinstance(payload.get("features"), dict):
+        payload = payload["features"]  # type: ignore[assignment]
+
     required_keys = {
         "credit_score",
         "monthly_income",
