@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -11,8 +10,6 @@ from caseflow.agents.underwriter_agent import (
     run_underwriter_agent,
     underwrite_case_with_justification,
 )
-from caseflow.core.audit import get_audit_sink
-from caseflow.core.metrics import increment_metric
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -170,6 +167,7 @@ async def mortgage_underwrite_endpoint(
         raise HTTPException(status_code=422, detail="'top_k' must be >= 1")
 
     normalized_payload = _validate_mortgage_payload(payload_value)
+    request_id = getattr(request.state, "request_id", "") or ""
 
     try:
         result = underwrite_case_with_justification(
@@ -178,17 +176,10 @@ async def mortgage_underwrite_endpoint(
             model_version=model_version,
             evidence_query=evidence_query,
             top_k=top_k,
+            request_id=request_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    request_id = getattr(request.state, "request_id", "") or ""
-    citation_chunk_ids = [
-        citation.chunk_id for citation in result.justification.citations
-    ]
-    increment_metric("underwrite_citations_total", float(len(citation_chunk_ids)))
-    if citation_chunk_ids:
-        increment_metric("underwrite_with_citations_total")
 
     logger.info(
         "mortgage_underwrite_completed",
@@ -203,30 +194,6 @@ async def mortgage_underwrite_endpoint(
             "request_id": request_id,
         },
     )
-
-    audit_event = {
-        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "request_id": request_id,
-        "case_id": normalized_case_id,
-        "event": "underwrite_justification",
-        "decision": result.decision,
-        "risk_score": result.risk_score,
-        "model_id": result.model_id,
-        "chunk_ids": citation_chunk_ids,
-    }
-    try:
-        get_audit_sink().emit_decision_event(audit_event)
-    except Exception as exc:  # pragma: no cover
-        logger.error(
-            "mortgage_underwrite_audit_emit_failed",
-            extra={
-                "event": "mortgage_underwrite_audit_emit_failed",
-                "request_id": request_id,
-                "case_id": normalized_case_id,
-                "error_type": exc.__class__.__name__,
-                "error_message": str(exc),
-            },
-        )
 
     return {
         "case_id": normalized_case_id,

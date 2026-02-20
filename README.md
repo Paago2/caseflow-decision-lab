@@ -505,6 +505,28 @@ curl -sS -X POST \
 curl -sS -X DELETE http://localhost:8000/mortgage/case_ocr_001/evidence
 ```
 
+## Mortgage 007: LangGraph Underwriter Orchestration (Deterministic)
+
+Underwrite decisioning now executes via a deterministic LangGraph workflow while
+keeping `/mortgage/{case_id}/underwrite` response shape unchanged.
+
+Graph:
+
+```text
+START
+  -> policy
+  -> risk
+  -> build_query
+  -> evidence
+  -> justify
+  -> decide
+  -> audit_metrics
+END
+```
+
+This keeps node boundaries clean so `justify` can later be replaced with real
+LLM/tool-calling, while preserving deterministic behavior today.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

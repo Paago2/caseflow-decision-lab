@@ -6,6 +6,7 @@ from typing import TypedDict
 
 from langgraph.graph import START, StateGraph
 
+from caseflow.agents.underwriter_graph import run_underwrite_graph
 from caseflow.domain.mortgage.justification import (
     Justification,
     generate_deterministic_justification,
@@ -75,6 +76,70 @@ def _build_evidence_query(payload: dict[str, object]) -> str:
 
 
 def underwrite_case_with_justification(
+    case_id: str,
+    payload: dict[str, object],
+    *,
+    model_version: str | None = None,
+    evidence_query: str | None = None,
+    top_k: int = 5,
+    request_id: str = "",
+) -> UnderwriteResult:
+    final_state = run_underwrite_graph(
+        {
+            "case_id": case_id,
+            "payload": payload,
+            "model_version": model_version,
+            "top_k": top_k,
+            "evidence_query": evidence_query,
+            "request_id": request_id,
+            "policy_result": {},
+            "risk_score": 0.0,
+            "model_id": "",
+            "evidence_results": [],
+            "justification": {},
+            "decision": "review",
+            "chunk_ids_used": [],
+        }
+    )
+
+    justification_payload = final_state["justification"]
+    citations_payload = justification_payload.get("citations", [])
+    citations = []
+    if isinstance(citations_payload, list):
+        for item in citations_payload:
+            if isinstance(item, dict):
+                from caseflow.domain.mortgage.justification import Citation
+
+                citations.append(
+                    Citation(
+                        document_id=str(item.get("document_id", "")),
+                        chunk_id=str(item.get("chunk_id", "")),
+                        start_char=int(item.get("start_char", 0)),
+                        end_char=int(item.get("end_char", 0)),
+                        score=float(item.get("score", 0.0)),
+                    )
+                )
+
+    policy = final_state["policy_result"]
+    return UnderwriteResult(
+        decision=str(final_state["decision"]),
+        risk_score=float(final_state["risk_score"]),
+        model_id=str(final_state["model_id"]),
+        policy={
+            "policy_id": str(policy.get("policy_id", "mortgage_v1")),
+            "decision": str(policy.get("decision", "review")),
+            "reasons": list(policy.get("reasons", [])),
+            "derived": dict(policy.get("derived", {})),
+        },
+        justification=Justification(
+            summary=str(justification_payload.get("summary", "")),
+            reasons=list(justification_payload.get("reasons", [])),
+            citations=citations,
+        ),
+    )
+
+
+def underwrite_case_with_justification_legacy(
     case_id: str,
     payload: dict[str, object],
     *,
