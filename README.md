@@ -331,6 +331,61 @@ policy directly in-process, returning decision + reasons + derived metrics.
 The extracted features can also be passed to `/mortgage/decision` and
 `/underwriter/run` (with key renaming for monthly income/debt conventions).
 
+## Mortgage 003: OCR Adapter + Provenance Storage
+
+This slice adds a public OCR extraction endpoint and local provenance storage
+to support traceable document ingestion for later underwriting justification
+and retrieval workflows.
+
+Endpoint:
+
+```bash
+POST /ocr/extract
+```
+
+Example request:
+
+```bash
+curl -sS -X POST http://localhost:8000/ocr/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_id": "case_ocr_001",
+    "document": {
+      "filename": "note.txt",
+      "content_type": "text/plain",
+      "content_b64": "SGVsbG8gbW9ydGdhZ2UgT0NS"
+    }
+  }'
+```
+
+Example response:
+
+```json
+{
+  "case_id": "case_ocr_001",
+  "document_id": "6cba8bb56e2f0f89",
+  "content_type": "text/plain",
+  "filename": "note.txt",
+  "extraction_meta": {
+    "method": "plain_text",
+    "engine": "builtin",
+    "char_count": 18
+  },
+  "provenance_path": "artifacts/provenance/case_ocr_001/6cba8bb56e2f0f89.json",
+  "text_path": "artifacts/provenance/case_ocr_001/6cba8bb56e2f0f89.txt",
+  "request_id": "..."
+}
+```
+
+Environment settings:
+
+- `PROVENANCE_DIR` (default: `artifacts/provenance`)
+- `OCR_ENGINE` (default: `noop`, allowed: `noop`, `tesseract`)
+
+For this slice, `text/plain` extraction is supported directly. PDF/image OCR is
+stubbed with clear errors for not-yet-supported/not-yet-implemented behavior,
+and `tesseract` mode returns an install hint if `pytesseract` is unavailable.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

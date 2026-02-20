@@ -90,6 +90,16 @@ def test_documents_endpoints_have_no_security_requirement_in_openapi() -> None:
     assert "security" not in openapi["paths"]["/documents/decision"]["post"]
 
 
+def test_ocr_extract_has_no_security_requirement_in_openapi() -> None:
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    openapi = response.json()
+
+    assert "security" not in openapi["paths"]["/ocr/extract"]["post"]
+
+
 def test_models_endpoints_have_security_requirement_in_openapi() -> None:
     client = TestClient(app)
     response = client.get("/openapi.json")
