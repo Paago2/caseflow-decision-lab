@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from caseflow.core.audit import get_audit_sink
 from caseflow.ml.registry import get_active_model
 
 router = APIRouter()
@@ -74,6 +76,28 @@ async def decision_endpoint(request: Request) -> dict[str, Any]:
             "request_id": request_id,
         },
     )
+
+    audit_event = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "request_id": request_id,
+        "model_id": model.model_id,
+        "score": score,
+        "decision": decision,
+        "reasons": reasons,
+    }
+    try:
+        get_audit_sink().emit_decision_event(audit_event)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.error(
+            "decision_audit_emit_failed",
+            extra={
+                "event": "decision_audit_emit_failed",
+                "request_id": request_id,
+                "model_id": model.model_id,
+                "error_type": exc.__class__.__name__,
+                "error_message": str(exc),
+            },
+        )
 
     return {
         "model_id": model.model_id,

@@ -97,6 +97,44 @@ Promotion checklist for successful experiments:
 2. Add tests under `tests/`.
 3. Ensure `/ready` gates still pass.
 
+## Observability & Hardening
+
+### Prometheus metrics
+
+The service exposes a public metrics endpoint:
+
+```bash
+curl -sS http://localhost:8000/metrics
+```
+
+You can scrape this endpoint from Prometheus directly. It includes request
+counter and latency histogram metrics (for example, `http_requests_total` and
+`http_request_duration_seconds_bucket`).
+
+### Optional rate limiting
+
+Rate limiting is disabled by default. To enable it, set:
+
+```bash
+export RATE_LIMIT_ENABLED=true
+export RATE_LIMIT_RPS=5
+export RATE_LIMIT_BURST=10
+export RATE_LIMIT_SCOPE=ip
+```
+
+The limiter applies only to `/predict` and `/decision`.
+
+### Audit sink selection
+
+Decision events are logged by default. To write events to JSONL instead:
+
+```bash
+export AUDIT_SINK=jsonl
+export AUDIT_JSONL_PATH=artifacts/events/decision_events.jsonl
+```
+
+Each successful `/decision` call appends one JSON object line to the sink.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

@@ -4,13 +4,20 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI, Security
 
 from caseflow.api.routes_decision import router as decision_router
+from caseflow.api.routes_metrics import router as metrics_router
 from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_predict import router as predict_router
 from caseflow.api.routes_ready import router as ready_router
 from caseflow.api.routes_version import router as version_router
+from caseflow.core.audit import clear_audit_sink_cache
 from caseflow.core.auth import require_api_key
 from caseflow.core.errors import install_error_handlers
 from caseflow.core.logging import configure_logging
+from caseflow.core.metrics import clear_metrics, install_metrics_middleware
+from caseflow.core.rate_limit import (
+    clear_rate_limiter_cache,
+    install_rate_limit_middleware,
+)
 from caseflow.core.request_id import install_request_id_middleware
 from caseflow.core.settings import get_settings
 from caseflow.ml.registry import clear_active_model, set_active_model
@@ -35,6 +42,9 @@ def _safe_error_message(message: str, max_length: int = 180) -> str:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     clear_active_model()
+    clear_rate_limiter_cache()
+    clear_audit_sink_cache()
+    clear_metrics()
 
     try:
         set_active_model(settings.active_model_id)
@@ -73,10 +83,15 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         clear_active_model()
+        clear_rate_limiter_cache()
+        clear_audit_sink_cache()
+        clear_metrics()
 
 
 app = FastAPI(title="caseflow-decision-lab API", lifespan=lifespan)
+install_rate_limit_middleware(app)
 install_request_id_middleware(app)
+install_metrics_middleware(app)
 install_error_handlers(app)
 
 protected_router = APIRouter(
@@ -97,6 +112,7 @@ def protected_ping() -> dict[str, str]:
 
 app.include_router(ready_router)
 app.include_router(version_router)
+app.include_router(metrics_router)
 app.include_router(predict_router)
 app.include_router(decision_router)
 app.include_router(models_router)
