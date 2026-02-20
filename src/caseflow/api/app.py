@@ -8,6 +8,7 @@ from caseflow.api.routes_documents import router as documents_router
 from caseflow.api.routes_metrics import router as metrics_router
 from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_mortgage import router as mortgage_router
+from caseflow.api.routes_ocr import router as ocr_router
 from caseflow.api.routes_predict import router as predict_router
 from caseflow.api.routes_ready import router as ready_router
 from caseflow.api.routes_underwriter import router as underwriter_router
@@ -122,6 +123,7 @@ app.include_router(metrics_router)
 app.include_router(predict_router)
 app.include_router(decision_router)
 app.include_router(documents_router)
+app.include_router(ocr_router)
 app.include_router(mortgage_router)
 app.include_router(underwriter_router)
 app.include_router(models_router)

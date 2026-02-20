@@ -22,6 +22,8 @@ class Settings:
     rate_limit_scope: str = "ip"
     audit_sink: str = "log"
     audit_jsonl_path: str = "artifacts/events/decision_events.jsonl"
+    provenance_dir: str = "artifacts/provenance"
+    ocr_engine: str = "noop"
 
 
 _settings: Settings | None = None
@@ -60,6 +62,12 @@ def _validate_settings(settings: Settings) -> None:
     if settings.audit_sink == "jsonl" and not settings.audit_jsonl_path.strip():
         raise ValueError("AUDIT_JSONL_PATH must be set when AUDIT_SINK=jsonl.")
 
+    if not settings.provenance_dir.strip():
+        raise ValueError("PROVENANCE_DIR must be set and non-empty.")
+
+    if settings.ocr_engine not in {"noop", "tesseract"}:
+        raise ValueError("OCR_ENGINE must be one of: noop, tesseract.")
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
@@ -90,6 +98,8 @@ def get_settings() -> Settings:
                 "AUDIT_JSONL_PATH",
                 "artifacts/events/decision_events.jsonl",
             ),
+            provenance_dir=os.getenv("PROVENANCE_DIR", "artifacts/provenance"),
+            ocr_engine=os.getenv("OCR_ENGINE", "noop"),
         )
         _validate_settings(candidate)
         _settings = candidate
