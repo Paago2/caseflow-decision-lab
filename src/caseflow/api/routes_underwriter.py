@@ -1,12 +1,20 @@
 from __future__ import annotations
 
+import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from caseflow.agents.underwriter_agent import UnderwriterCase, run_underwriter_agent
+from caseflow.agents.underwriter_agent import (
+    UnderwriterCase,
+    run_underwriter_agent,
+    underwrite_case_with_justification,
+)
+from caseflow.core.audit import get_audit_sink
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _REQUIRED_KEYS = {
     "credit_score",
@@ -23,6 +31,38 @@ _NUMERIC_KEYS = {
     "loan_amount",
     "property_value",
 }
+
+
+def _validate_mortgage_payload(payload: dict[str, object]) -> dict[str, object]:
+    missing_keys = sorted(_REQUIRED_KEYS - set(payload.keys()))
+    if missing_keys:
+        raise HTTPException(
+            status_code=422,
+            detail="Missing required feature keys: " + ", ".join(missing_keys),
+        )
+
+    occupancy = payload.get("occupancy")
+    if not isinstance(occupancy, str) or occupancy not in {
+        "primary",
+        "secondary",
+        "investment",
+    }:
+        raise HTTPException(
+            status_code=422,
+            detail="'occupancy' must be one of: primary, secondary, investment",
+        )
+
+    normalized = dict(payload)
+    for key in _NUMERIC_KEYS:
+        try:
+            normalized[key] = float(normalized[key])
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"'{key}' must be numeric",
+            ) from exc
+
+    return normalized
 
 
 @router.post("/underwriter/run")
@@ -49,33 +89,7 @@ async def underwriter_run_endpoint(request: Request) -> dict[str, Any]:
     if not isinstance(features, dict):
         raise HTTPException(status_code=422, detail="'features' must be an object")
 
-    missing_keys = sorted(_REQUIRED_KEYS - set(features.keys()))
-    if missing_keys:
-        raise HTTPException(
-            status_code=422,
-            detail="Missing required feature keys: " + ", ".join(missing_keys),
-        )
-
-    occupancy = features.get("occupancy")
-    if not isinstance(occupancy, str) or occupancy not in {
-        "primary",
-        "secondary",
-        "investment",
-    }:
-        raise HTTPException(
-            status_code=422,
-            detail="'occupancy' must be one of: primary, secondary, investment",
-        )
-
-    normalized_features = dict(features)
-    for key in _NUMERIC_KEYS:
-        try:
-            normalized_features[key] = float(normalized_features[key])
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=422,
-                detail=f"'{key}' must be numeric",
-            ) from exc
+    normalized_features = _validate_mortgage_payload(features)
 
     request_id = getattr(request.state, "request_id", "") or ""
     result = run_underwriter_agent(
@@ -91,4 +105,143 @@ async def underwriter_run_endpoint(request: Request) -> dict[str, Any]:
         "derived": result.derived,
         "next_actions": result.next_actions,
         "request_id": result.request_id,
+    }
+
+
+@router.post("/mortgage/{case_id}/underwrite")
+async def mortgage_underwrite_endpoint(
+    case_id: str,
+    request: Request,
+) -> dict[str, Any]:
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body") from exc
+
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=400,
+            detail="Request body must be a JSON object",
+        )
+
+    normalized_case_id = case_id.strip()
+    if not normalized_case_id:
+        raise HTTPException(
+            status_code=422,
+            detail="'case_id' must be a non-empty string",
+        )
+
+    payload_value = body.get("payload")
+    if not isinstance(payload_value, dict):
+        raise HTTPException(status_code=422, detail="'payload' must be an object")
+
+    model_version_raw = body.get("model_version")
+    if model_version_raw is None:
+        model_version: str | None = None
+    elif isinstance(model_version_raw, str) and model_version_raw.strip():
+        model_version = model_version_raw.strip()
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="'model_version' must be a non-empty string when provided",
+        )
+
+    evidence_query_raw = body.get("evidence_query")
+    if evidence_query_raw is None:
+        evidence_query: str | None = None
+    elif isinstance(evidence_query_raw, str):
+        evidence_query = evidence_query_raw
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="'evidence_query' must be a string when provided",
+        )
+
+    top_k_raw = body.get("top_k", 5)
+    try:
+        top_k = int(top_k_raw)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422, detail="'top_k' must be an integer"
+        ) from exc
+
+    if top_k < 1:
+        raise HTTPException(status_code=422, detail="'top_k' must be >= 1")
+
+    normalized_payload = _validate_mortgage_payload(payload_value)
+
+    try:
+        result = underwrite_case_with_justification(
+            normalized_case_id,
+            normalized_payload,
+            model_version=model_version,
+            evidence_query=evidence_query,
+            top_k=top_k,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    request_id = getattr(request.state, "request_id", "") or ""
+    citation_chunk_ids = [
+        citation.chunk_id for citation in result.justification.citations
+    ]
+
+    logger.info(
+        "mortgage_underwrite_completed",
+        extra={
+            "event": "mortgage_underwrite_completed",
+            "case_id": normalized_case_id,
+            "decision": result.decision,
+            "score": result.risk_score,
+            "num_citations": len(result.justification.citations),
+            "model_version": model_version or result.model_id,
+            "top_k": top_k,
+            "request_id": request_id,
+        },
+    )
+
+    audit_event = {
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "request_id": request_id,
+        "case_id": normalized_case_id,
+        "event": "underwrite_justification",
+        "decision": result.decision,
+        "risk_score": result.risk_score,
+        "model_id": result.model_id,
+        "chunk_ids": citation_chunk_ids,
+    }
+    try:
+        get_audit_sink().emit_decision_event(audit_event)
+    except Exception as exc:  # pragma: no cover
+        logger.error(
+            "mortgage_underwrite_audit_emit_failed",
+            extra={
+                "event": "mortgage_underwrite_audit_emit_failed",
+                "request_id": request_id,
+                "case_id": normalized_case_id,
+                "error_type": exc.__class__.__name__,
+                "error_message": str(exc),
+            },
+        )
+
+    return {
+        "case_id": normalized_case_id,
+        "decision": result.decision,
+        "risk_score": result.risk_score,
+        "policy": result.policy,
+        "justification": {
+            "summary": result.justification.summary,
+            "reasons": result.justification.reasons,
+            "citations": [
+                {
+                    "document_id": citation.document_id,
+                    "chunk_id": citation.chunk_id,
+                    "start_char": citation.start_char,
+                    "end_char": citation.end_char,
+                    "score": citation.score,
+                }
+                for citation in result.justification.citations
+            ],
+        },
+        "request_id": request_id,
     }

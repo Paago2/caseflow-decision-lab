@@ -430,6 +430,45 @@ curl -sS \
 Search returns scored chunk snippets with citation fields:
 `document_id`, `chunk_id`, `start_char`, `end_char`, and `text`.
 
+## Mortgage 005: Underwriter Decision + Justification with Citations
+
+This slice adds deterministic underwriting justification that combines:
+
+1) mortgage policy decisioning,
+2) risk scoring from model registry,
+3) evidence retrieval from the Mortgage 004 index.
+
+Endpoint:
+
+```bash
+POST /mortgage/{case_id}/underwrite
+```
+
+Example call:
+
+```bash
+curl -sS -X POST http://localhost:8000/mortgage/case_ocr_001/underwrite \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payload": {
+      "credit_score": 710,
+      "monthly_income": 9000,
+      "monthly_debt": 2600,
+      "loan_amount": 280000,
+      "property_value": 450000,
+      "occupancy": "primary"
+    },
+    "model_version": "baseline_v1",
+    "top_k": 5
+  }'
+```
+
+Flow runbook:
+
+1. Ingest document text via `/ocr/extract`.
+2. Index provenance text via `/mortgage/{case_id}/evidence/index`.
+3. Run `/mortgage/{case_id}/underwrite` for decision + justification + citations.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:
