@@ -36,3 +36,5 @@ experiments/__pycache__/
 *.egg-info/
 notebooks/
 dist/
+frontend/node_modules/
+frontend/dist/

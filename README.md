@@ -43,6 +43,27 @@ Toggle demo behavior with env vars (example):
 TRACE_ENABLED=true JUSTIFIER_PROVIDER=stub_llm make demo
 ```
 
+## Mortgage 012: Minimal React Demo UI
+
+Mortgage 012 adds a lightweight React + TypeScript UI under `frontend/` to run
+the end-to-end demo flow without changing backend endpoints.
+
+Run the UI locally:
+
+```bash
+make api
+cd frontend
+npm install
+npm run dev
+```
+
+The UI defaults to backend calls through Vite proxy (`/api` ->
+`http://localhost:8000`). You can override with:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000 npm run dev
+```
+
 ### System verification checklist
 
 - **/health (liveness):** `curl http://localhost:8000/health`
