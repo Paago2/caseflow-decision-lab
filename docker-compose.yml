@@ -25,3 +25,12 @@ services:
         "--reload-dir",
         "/app/src",
       ]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
