@@ -386,6 +386,50 @@ For this slice, `text/plain` extraction is supported directly. PDF/image OCR is
 stubbed with clear errors for not-yet-supported/not-yet-implemented behavior,
 and `tesseract` mode returns an install hint if `pytesseract` is unavailable.
 
+## Mortgage 004: RAG Evidence Index + Retrieval
+
+This slice adds local, filesystem-backed indexing/retrieval over extracted
+provenance text so underwriter workflows can fetch evidence snippets with
+citations.
+
+Environment setting:
+
+- `EVIDENCE_INDEX_DIR` (default: `artifacts/evidence_index`)
+
+Index endpoint:
+
+```bash
+POST /mortgage/{case_id}/evidence/index
+```
+
+Example index call:
+
+```bash
+curl -sS -X POST \
+  http://localhost:8000/mortgage/case_ocr_001/evidence/index \
+  -H "Content-Type: application/json" \
+  -d '{
+    "documents": [{"document_id": "6cba8bb56e2f0f89"}],
+    "overwrite": true
+  }'
+```
+
+Search endpoint:
+
+```bash
+GET /mortgage/{case_id}/evidence/search?q=...&top_k=5
+```
+
+Example search call:
+
+```bash
+curl -sS \
+  "http://localhost:8000/mortgage/case_ocr_001/evidence/search?q=income&top_k=5"
+```
+
+Search returns scored chunk snippets with citation fields:
+`document_id`, `chunk_id`, `start_char`, `end_char`, and `text`.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

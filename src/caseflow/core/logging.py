@@ -27,6 +27,8 @@ _EXTRA_KEYS = (
     "document_id",
     "engine",
     "char_count",
+    "indexed_chunks",
+    "top_k",
     "next_actions",
     "doc_count",
     "source_summary",

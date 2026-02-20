@@ -56,3 +56,46 @@ def write_provenance_event(
         "text_path": str(text_path),
         "provenance": provenance_event,
     }
+
+
+def load_provenance_event(case_id: str, document_id: str) -> dict[str, Any]:
+    settings = get_settings()
+    provenance_path = Path(settings.provenance_dir) / case_id / f"{document_id}.json"
+    if not provenance_path.is_file():
+        raise FileNotFoundError(
+            f"Provenance event not found for case_id={case_id}, "
+            f"document_id={document_id}"
+        )
+
+    try:
+        payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Provenance JSON is invalid for case_id={case_id}, "
+            f"document_id={document_id}"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"Provenance JSON must be an object for case_id={case_id}, "
+            f"document_id={document_id}"
+        )
+
+    return payload
+
+
+def load_extracted_text(case_id: str, document_id: str) -> str:
+    payload = load_provenance_event(case_id, document_id)
+    text_path = payload.get("text_path")
+    if isinstance(text_path, str) and text_path.strip():
+        candidate = Path(text_path)
+    else:
+        settings = get_settings()
+        candidate = Path(settings.provenance_dir) / case_id / f"{document_id}.txt"
+
+    if not candidate.is_file():
+        raise FileNotFoundError(
+            f"Extracted text not found for case_id={case_id}, document_id={document_id}"
+        )
+
+    return candidate.read_text(encoding="utf-8")
