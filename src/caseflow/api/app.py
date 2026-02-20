@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI, Security
 
 from caseflow.api.routes_decision import router as decision_router
+from caseflow.api.routes_documents import router as documents_router
 from caseflow.api.routes_metrics import router as metrics_router
 from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_mortgage import router as mortgage_router
@@ -120,6 +121,7 @@ app.include_router(version_router)
 app.include_router(metrics_router)
 app.include_router(predict_router)
 app.include_router(decision_router)
+app.include_router(documents_router)
 app.include_router(mortgage_router)
 app.include_router(underwriter_router)
 app.include_router(models_router)
