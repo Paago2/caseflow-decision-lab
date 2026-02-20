@@ -1,4 +1,4 @@
-.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check
+.PHONY: up down logs build restart shell run pid-8000 kill-8000 exp exp-001 exp-002 exp-003 exp-007 exp-008 exp-help register test test-local fmt lint check golden golden-update
 
 up:
 	docker compose up -d
@@ -103,3 +103,13 @@ lint:
 	uv run ruff check .
 
 check: fmt lint test-local
+
+golden:
+	uv run pytest -q tests/test_golden_underwrite.py
+
+golden-update:
+	@if [ "$$CI" = "true" ] || [ "$$CI" = "1" ]; then \
+		echo "Refusing to run golden-update in CI"; \
+		exit 1; \
+	fi
+	GOLDEN_UPDATE=1 uv run pytest -q tests/test_golden_underwrite.py

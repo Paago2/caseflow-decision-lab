@@ -586,6 +586,32 @@ curl -sS -X POST \
 Replay deterministically reruns underwriting with stored request inputs and
 captured engine/provider settings, then returns a v1 contract response.
 
+## Mortgage 010: Golden-Case Underwrite Regression Harness
+
+Mortgage 010 adds committed golden fixtures and a deterministic harness to
+detect unintended underwriting output drift.
+
+Golden fixture folders:
+
+- `tests/fixtures/golden/requests/`
+- `tests/fixtures/golden/expected/`
+
+Golden comparison normalizes dynamic fields (like `request_id`) and stabilizes
+ordering/rounding so results are portable across machines.
+
+Commands:
+
+```bash
+make golden
+```
+
+```bash
+make golden-update
+```
+
+`golden-update` is explicit and blocked in CI. Use it only when intentional,
+review resulting expected JSON diffs, and commit alongside code changes.
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:

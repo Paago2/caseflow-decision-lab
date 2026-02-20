@@ -1,0 +1,18 @@
+{
+  "case_id": "golden_no_evidence_001",
+  "underwrite_engine": "graph",
+  "justifier_provider": "deterministic",
+  "evidence_documents": [],
+  "underwrite_request": {
+    "payload": {
+      "credit_score": 680,
+      "monthly_income": 8000,
+      "monthly_debt": 2500,
+      "loan_amount": 250000,
+      "property_value": 400000,
+      "occupancy": "primary"
+    },
+    "model_version": "baseline_v1",
+    "top_k": 5
+  }
+}

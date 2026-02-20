@@ -1,0 +1,25 @@
+{
+  "case_id": "golden_no_evidence_001",
+  "decision": "approve",
+  "justification": {
+    "citations": [],
+    "reasons": [
+      "Policy decision is approve based on rule evaluation.",
+      "No supporting evidence indexed for this case."
+    ],
+    "summary": "No supporting evidence indexed for this case."
+  },
+  "policy": {
+    "decision": "approve",
+    "derived": {
+      "dti": 0.3125,
+      "ltv": 0.625
+    },
+    "policy_id": "mortgage_v1",
+    "reasons": [
+      "APPROVE_POLICY_V1"
+    ]
+  },
+  "risk_score": 0.6,
+  "schema_version": "v1"
+}

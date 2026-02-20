@@ -1,0 +1,23 @@
+{
+  "case_id": "golden_review_001",
+  "underwrite_engine": "graph",
+  "justifier_provider": "deterministic",
+  "evidence_documents": [
+    {
+      "filename": "review_edge.txt",
+      "text": "Income and liabilities are borderline and require additional documentation."
+    }
+  ],
+  "underwrite_request": {
+    "payload": {
+      "credit_score": 650,
+      "monthly_income": 8000,
+      "monthly_debt": 3600,
+      "loan_amount": 300000,
+      "property_value": 420000,
+      "occupancy": "secondary"
+    },
+    "model_version": "baseline_v1",
+    "top_k": 5
+  }
+}

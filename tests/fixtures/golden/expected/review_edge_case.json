@@ -1,0 +1,34 @@
+{
+  "case_id": "golden_review_001",
+  "decision": "review",
+  "justification": {
+    "citations": [
+      {
+        "chunk_id": "e03982d6d1e73b08",
+        "document_id": "002f61ab588dff4a",
+        "end_char": 75,
+        "score": 0.079872,
+        "start_char": 0
+      }
+    ],
+    "reasons": [
+      "Policy signals: REVIEW_CREDIT_BORDERLINE, REVIEW_DTI_BORDERLINE (see C1).",
+      "Risk score is 0.5731 in the low band (see C1)."
+    ],
+    "summary": "Policy decision is review. Deterministic risk score is 0.5731 (low band)."
+  },
+  "policy": {
+    "decision": "review",
+    "derived": {
+      "dti": 0.45,
+      "ltv": 0.714286
+    },
+    "policy_id": "mortgage_v1",
+    "reasons": [
+      "REVIEW_CREDIT_BORDERLINE",
+      "REVIEW_DTI_BORDERLINE"
+    ]
+  },
+  "risk_score": 0.573067,
+  "schema_version": "v1"
+}
