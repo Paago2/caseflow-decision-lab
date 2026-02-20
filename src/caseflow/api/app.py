@@ -9,6 +9,7 @@ from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_mortgage import router as mortgage_router
 from caseflow.api.routes_predict import router as predict_router
 from caseflow.api.routes_ready import router as ready_router
+from caseflow.api.routes_underwriter import router as underwriter_router
 from caseflow.api.routes_version import router as version_router
 from caseflow.core.audit import clear_audit_sink_cache
 from caseflow.core.auth import require_api_key
@@ -120,5 +121,6 @@ app.include_router(metrics_router)
 app.include_router(predict_router)
 app.include_router(decision_router)
 app.include_router(mortgage_router)
+app.include_router(underwriter_router)
 app.include_router(models_router)
 app.include_router(protected_router)

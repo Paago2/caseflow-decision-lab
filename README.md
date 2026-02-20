@@ -197,6 +197,55 @@ Example decline response:
 Reason codes identify which underwriting rule triggered review/decline.
 Derived metrics (`dti`, `ltv`) are included for transparent debugging.
 
+## Agent 001: Underwriter Orchestration (LangGraph)
+
+Endpoint:
+
+```bash
+POST /underwriter/run
+```
+
+Example request:
+
+```bash
+curl -sS -X POST http://localhost:8000/underwriter/run \
+  -H "Content-Type: application/json" \
+  -H "X-Request-Id: underwriter-123" \
+  -d '{
+    "case_id": "case-123",
+    "features": {
+      "credit_score": 640,
+      "monthly_income": 10000,
+      "monthly_debt": 3000,
+      "loan_amount": 300000,
+      "property_value": 500000,
+      "occupancy": "secondary"
+    }
+  }'
+```
+
+Example response:
+
+```json
+{
+  "case_id": "case-123",
+  "policy_id": "mortgage_v1",
+  "decision": "review",
+  "reasons": ["REVIEW_CREDIT_BORDERLINE"],
+  "derived": {"dti": 0.3, "ltv": 0.6},
+  "next_actions": [
+    "REQUEST_PAYSTUB",
+    "REQUEST_BANK_STATEMENTS",
+    "RUN_RISK_SCORE",
+    "RETRIEVE_POLICY_SNIPPETS"
+  ],
+  "request_id": "underwriter-123"
+}
+```
+
+`next_actions` are deterministic placeholders for future tool integrations
+(for example OCR, retrieval/RAG, and external risk scoring services).
+
 ### Run locally (clean)
 
 If port 8000 is stuck from an old process, clean it up first:
