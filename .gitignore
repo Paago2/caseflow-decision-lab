@@ -31,6 +31,7 @@ experiments/__pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+data/00_raw/
 
 # Packaging/build artifacts
 *.egg-info/
@@ -38,3 +39,4 @@ notebooks/
 dist/
 frontend/node_modules/
 frontend/dist/
+data_experiment/

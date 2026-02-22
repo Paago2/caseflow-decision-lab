@@ -1,6 +1,6 @@
 datasets:
   - name: example_diabetes_csv
-    path: data/raw/diabetes.csv
+    path: data_experiment/raw/diabetes.csv
     target_column: target
     feature_columns:
       - age

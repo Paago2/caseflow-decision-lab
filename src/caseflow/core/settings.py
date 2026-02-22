@@ -33,6 +33,13 @@ class Settings:
     underwrite_results_dir: str = "artifacts/underwrite_results"
     underwrite_persist_results: bool = False
     ocr_engine: str = "noop"
+    postgres_dsn: str = "postgresql://caseflow:caseflow@postgres:5432/caseflow"
+    redis_url: str = "redis://redis:6379/0"
+    s3_endpoint_url: str = "http://minio:9000"
+    s3_access_key: str = "minioadmin"
+    s3_secret_key: str = "minioadmin"
+    s3_bucket_raw: str = "caseflow-raw"
+    s3_bucket_artifacts: str = "caseflow-artifacts"
 
 
 _settings: Settings | None = None
@@ -49,6 +56,16 @@ def _validate_settings(settings: Settings) -> None:
         raise ValueError(
             "API_KEY must be set and non-empty when APP_ENV is not 'local'."
         )
+
+    if settings.app_env != "local":
+        if not settings.s3_access_key.strip():
+            raise ValueError(
+                "S3_ACCESS_KEY must be set and non-empty when APP_ENV is not 'local'."
+            )
+        if not settings.s3_secret_key.strip():
+            raise ValueError(
+                "S3_SECRET_KEY must be set and non-empty when APP_ENV is not 'local'."
+            )
 
     if not settings.model_registry_dir.strip():
         raise ValueError("MODEL_REGISTRY_DIR must be set and non-empty.")
@@ -95,6 +112,24 @@ def _validate_settings(settings: Settings) -> None:
     if settings.ocr_engine not in {"noop", "tesseract"}:
         raise ValueError("OCR_ENGINE must be one of: noop, tesseract.")
 
+    if not settings.postgres_dsn.strip():
+        raise ValueError("POSTGRES_DSN must be set and non-empty.")
+
+    if not settings.redis_url.strip():
+        raise ValueError("REDIS_URL must be set and non-empty.")
+
+    endpoint = settings.s3_endpoint_url.strip()
+    if not endpoint:
+        raise ValueError("S3_ENDPOINT_URL must be set and non-empty.")
+    if not (endpoint.startswith("http://") or endpoint.startswith("https://")):
+        raise ValueError("S3_ENDPOINT_URL must start with http:// or https://.")
+
+    if not settings.s3_bucket_raw.strip():
+        raise ValueError("S3_BUCKET_RAW must be set and non-empty.")
+
+    if not settings.s3_bucket_artifacts.strip():
+        raise ValueError("S3_BUCKET_ARTIFACTS must be set and non-empty.")
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
@@ -140,6 +175,16 @@ def get_settings() -> Settings:
             ),
             underwrite_persist_results=_env_bool("UNDERWRITE_PERSIST_RESULTS", False),
             ocr_engine=os.getenv("OCR_ENGINE", "noop"),
+            postgres_dsn=os.getenv(
+                "POSTGRES_DSN",
+                "postgresql://caseflow:caseflow@postgres:5432/caseflow",
+            ),
+            redis_url=os.getenv("REDIS_URL", "redis://redis:6379/0"),
+            s3_endpoint_url=os.getenv("S3_ENDPOINT_URL", "http://minio:9000"),
+            s3_access_key=os.getenv("S3_ACCESS_KEY", "minioadmin"),
+            s3_secret_key=os.getenv("S3_SECRET_KEY", "minioadmin"),
+            s3_bucket_raw=os.getenv("S3_BUCKET_RAW", "caseflow-raw"),
+            s3_bucket_artifacts=os.getenv("S3_BUCKET_ARTIFACTS", "caseflow-artifacts"),
         )
         _validate_settings(candidate)
         _settings = candidate

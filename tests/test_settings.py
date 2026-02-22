@@ -89,3 +89,70 @@ def test_get_settings_rejects_empty_active_model_id(monkeypatch) -> None:
         assert False, "Expected ValueError when ACTIVE_MODEL_ID is empty"
     except ValueError as exc:
         assert "ACTIVE_MODEL_ID must be set and non-empty" in str(exc)
+
+
+def test_get_settings_reads_infra_env_vars(monkeypatch) -> None:
+    monkeypatch.setenv("POSTGRES_DSN", "postgresql://user:pass@postgres:5432/customdb")
+    monkeypatch.setenv("REDIS_URL", "redis://redis:6379/9")
+    monkeypatch.setenv("S3_ENDPOINT_URL", "http://minio:9000")
+    monkeypatch.setenv("S3_ACCESS_KEY", "custom-key")
+    monkeypatch.setenv("S3_SECRET_KEY", "custom-secret")
+    monkeypatch.setenv("S3_BUCKET_RAW", "my-raw")
+    monkeypatch.setenv("S3_BUCKET_ARTIFACTS", "my-artifacts")
+    clear_settings_cache()
+
+    settings = get_settings()
+
+    assert settings.postgres_dsn == "postgresql://user:pass@postgres:5432/customdb"
+    assert settings.redis_url == "redis://redis:6379/9"
+    assert settings.s3_endpoint_url == "http://minio:9000"
+    assert settings.s3_access_key == "custom-key"
+    assert settings.s3_secret_key == "custom-secret"
+    assert settings.s3_bucket_raw == "my-raw"
+    assert settings.s3_bucket_artifacts == "my-artifacts"
+
+
+def test_get_settings_rejects_empty_s3_bucket_names(monkeypatch) -> None:
+    monkeypatch.setenv("S3_BUCKET_RAW", "")
+    clear_settings_cache()
+
+    try:
+        get_settings()
+        assert False, "Expected ValueError when S3_BUCKET_RAW is empty"
+    except ValueError as exc:
+        assert "S3_BUCKET_RAW must be set and non-empty" in str(exc)
+
+    monkeypatch.setenv("S3_BUCKET_RAW", "caseflow-raw")
+    monkeypatch.setenv("S3_BUCKET_ARTIFACTS", "")
+    clear_settings_cache()
+
+    try:
+        get_settings()
+        assert False, "Expected ValueError when S3_BUCKET_ARTIFACTS is empty"
+    except ValueError as exc:
+        assert "S3_BUCKET_ARTIFACTS must be set and non-empty" in str(exc)
+
+
+def test_get_settings_rejects_invalid_s3_endpoint_url(monkeypatch) -> None:
+    monkeypatch.setenv("S3_ENDPOINT_URL", "minio:9000")
+    clear_settings_cache()
+
+    try:
+        get_settings()
+        assert False, "Expected ValueError for invalid S3_ENDPOINT_URL"
+    except ValueError as exc:
+        assert "S3_ENDPOINT_URL must start with http:// or https://" in str(exc)
+
+
+def test_get_settings_rejects_missing_s3_creds_outside_local(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "prod")
+    monkeypatch.setenv("API_KEY", "prod-secret")
+    monkeypatch.setenv("S3_ACCESS_KEY", "")
+    monkeypatch.setenv("S3_SECRET_KEY", "")
+    clear_settings_cache()
+
+    try:
+        get_settings()
+        assert False, "Expected ValueError when S3 creds are missing in prod"
+    except ValueError as exc:
+        assert "S3_ACCESS_KEY must be set and non-empty" in str(exc)

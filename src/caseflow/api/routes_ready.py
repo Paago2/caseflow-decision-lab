@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
+from caseflow.core.deps_health import check_minio, check_postgres, check_redis
 from caseflow.core.settings import get_settings
 from caseflow.ml.registry import get_active_model
 
@@ -11,6 +12,12 @@ VALID_APP_ENVS = {"local", "dev", "stg", "prod"}
 @router.get("/ready")
 def ready(request: Request) -> JSONResponse:
     settings = get_settings()
+    api_key_required = settings.app_env != "local"
+
+    postgres_ok, postgres_detail = check_postgres(settings.postgres_dsn)
+    redis_ok, redis_detail = check_redis(settings.redis_url)
+    minio_ok, minio_detail = check_minio(settings.s3_endpoint_url)
+
     model_loaded = True
     model_reason: str | None = None
 
@@ -31,8 +38,11 @@ def ready(request: Request) -> JSONResponse:
 
     checks = {
         "env_loaded": True,
-        "api_key_set": bool(settings.api_key.strip()),
+        "api_key_set": bool(settings.api_key.strip()) or not api_key_required,
         "app_env_valid": settings.app_env in VALID_APP_ENVS,
+        "postgres_ok": postgres_ok,
+        "redis_ok": redis_ok,
+        "minio_ok": minio_ok,
         "model_loaded": model_loaded,
     }
 
@@ -43,7 +53,13 @@ def ready(request: Request) -> JSONResponse:
     }
 
     if not all_checks_passed:
-        if not checks["model_loaded"] and model_reason:
+        if not checks["postgres_ok"]:
+            payload["reason"] = f"postgres_not_ready: {postgres_detail or 'unknown'}"
+        elif not checks["redis_ok"]:
+            payload["reason"] = f"redis_not_ready: {redis_detail or 'unknown'}"
+        elif not checks["minio_ok"]:
+            payload["reason"] = f"minio_not_ready: {minio_detail or 'unknown'}"
+        elif not checks["model_loaded"] and model_reason:
             payload["reason"] = model_reason
         elif not checks["api_key_set"]:
             payload["reason"] = "api_key_not_set"
