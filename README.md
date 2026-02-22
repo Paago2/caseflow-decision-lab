@@ -95,6 +95,26 @@ Upload raw data into MinIO bucket:
 uv run python scripts/ingest_raw_to_s3.py
 ```
 
+Initialize ingestion tracking table:
+
+```bash
+uv run python scripts/db_init.py
+```
+
+Run ingestion API dry-run (records run + manifest in Postgres):
+
+```bash
+curl -X POST http://localhost:8000/ingest/raw \
+  -H 'Content-Type: application/json' \
+  -d '{"dry_run": true, "limit": 3}'
+```
+
+Optional: inspect runs in Postgres:
+
+```bash
+docker compose exec postgres psql -U caseflow -d caseflow -c "select id,status,file_count,total_bytes,started_at,finished_at from ingestion_runs order by started_at desc limit 10;"
+```
+
 ## Regression + Contracts
 
 - Golden regression compare mode:
