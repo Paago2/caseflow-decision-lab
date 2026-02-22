@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI, Security
 from caseflow.api.routes_decision import router as decision_router
 from caseflow.api.routes_documents import router as documents_router
 from caseflow.api.routes_evidence import router as evidence_router
+from caseflow.api.routes_ingest import router as ingest_router
 from caseflow.api.routes_metrics import router as metrics_router
 from caseflow.api.routes_models import router as models_router
 from caseflow.api.routes_mortgage import router as mortgage_router
@@ -125,6 +126,7 @@ app.include_router(predict_router)
 app.include_router(decision_router)
 app.include_router(documents_router)
 app.include_router(evidence_router)
+app.include_router(ingest_router)
 app.include_router(ocr_router)
 app.include_router(mortgage_router)
 app.include_router(underwriter_router)
