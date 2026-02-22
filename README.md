@@ -69,6 +69,32 @@ make fullstack-down
 
 Open the UI at: `http://localhost:3000`
 
+## Local data stack + raw data ingest (Track A)
+
+Bring up API + local infra (Postgres, Redis, MinIO):
+
+```bash
+docker compose up --build
+```
+
+Check readiness:
+
+```bash
+curl http://localhost:8000/ready
+```
+
+Dry-run raw data ingest (no upload):
+
+```bash
+uv run python scripts/ingest_raw_to_s3.py --dry-run
+```
+
+Upload raw data into MinIO bucket:
+
+```bash
+uv run python scripts/ingest_raw_to_s3.py
+```
+
 ## Regression + Contracts
 
 - Golden regression compare mode:
