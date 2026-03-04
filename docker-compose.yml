@@ -18,6 +18,7 @@ services:
       - ./src:/app/src
       - ./tests:/app/tests
       - ./data:/app/data:ro
+      - ./models:/app/models:ro
 
     command:
       [

@@ -155,3 +155,249 @@ golden-update:
 		exit 1; \
 	fi
 	GOLDEN_UPDATE=1 uv run pytest -q tests/test_golden_underwrite.py
+
+
+
+# ============================================================
+# Backend plumbing (NO build, NO frontend)
+# ============================================================
+
+.PHONY: plumbing-up plumbing-down api-exec
+
+# Bring up ONLY backend plumbing (no build)
+plumbing-up:
+	docker compose up -d postgres redis minio api
+
+plumbing-down:
+	docker compose down
+
+# Exec into the running API container (fast loop)
+api-exec:
+	docker compose exec api bash
+
+
+# ============================================================
+# MinIO / mc helpers (FIXES: mb not found, empty endpoint/creds)
+# ============================================================
+
+.PHONY: minio-health minio-mb-lake minio-ls-lake minio-init
+
+# Compose network name (update if your project name differs)
+DOCKER_NET ?= caseflow-decision-lab_default
+
+# Hostname reachable INSIDE docker network (container name is most reliable in WSL)
+MINIO_HOST ?= caseflow-decision-lab-minio-1
+MINIO_PORT ?= 9000
+
+# Credentials (must match docker-compose.yml)
+MINIO_ACCESS_KEY ?= minioadmin
+MINIO_SECRET_KEY ?= minioadmin
+
+# Bucket + alias
+MINIO_BUCKET ?= lake
+MINIO_ALIAS ?= local
+
+# mc uses: MC_HOST_<alias>=http://user:pass@host:port
+MINIO_MC_HOST := http://$(MINIO_ACCESS_KEY):$(MINIO_SECRET_KEY)@$(MINIO_HOST):$(MINIO_PORT)
+
+# Run minio/mc inside the compose network with MC_HOST configured
+MC_RUN = docker run --rm --network $(DOCKER_NET) \
+  -e MC_HOST_$(MINIO_ALIAS)="$(MINIO_MC_HOST)" \
+  minio/mc
+
+minio-health:
+	docker run --rm --network $(DOCKER_NET) curlimages/curl:8.5.0 \
+	  -fsS http://$(MINIO_HOST):$(MINIO_PORT)/minio/health/live >/dev/null && \
+	  echo "minio live OK (docker network)"
+
+minio-mb-lake:
+	@$(MC_RUN) mb -p $(MINIO_ALIAS)/$(MINIO_BUCKET) || true
+
+minio-ls-lake:
+	@$(MC_RUN) ls $(MINIO_ALIAS)/$(MINIO_BUCKET) || true
+
+minio-init: minio-mb-lake minio-ls-lake
+
+
+# ============================================================
+# HMDA one-shot runners (NO rebuild)
+# - Uses docker compose exec (fast, no new container)
+# - run_id keeps sample vs full separate
+# ============================================================
+
+.PHONY: hmda-sample hmda-full hmda-run hmda-ls
+
+HMDA_YEAR ?= 2017
+HMDA_BUCKET ?= $(MINIO_BUCKET)
+HMDA_LIMIT ?= 200000
+HMDA_MODE ?= skip
+HMDA_RUN_ID ?= sample
+HMDA_BRONZE_CSV ?= data/00_raw/finance_housing/hmda/2017/hmda_2017_nationwide_all-records_labels.csv
+
+hmda-run: minio-init plumbing-up
+	@echo "[hmda] year=$(HMDA_YEAR) run_id=$(HMDA_RUN_ID) mode=$(HMDA_MODE) limit=$(HMDA_LIMIT)"
+	docker compose exec \
+	  -e MINIO_S3_ENDPOINT=$(MINIO_HOST):$(MINIO_PORT) \
+	  -e MINIO_ROOT_USER=$(MINIO_ACCESS_KEY) \
+	  -e MINIO_ROOT_PASSWORD=$(MINIO_SECRET_KEY) \
+	  api uv run python -m caseflow.cli.ingest_hmda \
+	    --year $(HMDA_YEAR) \
+	    --bucket $(HMDA_BUCKET) \
+	    --limit $(HMDA_LIMIT) \
+	    --mode $(HMDA_MODE) \
+	    --run-id $(HMDA_RUN_ID) \
+	    --bronze-csv "$(HMDA_BRONZE_CSV)"
+
+hmda-sample:
+	@$(MAKE) hmda-run HMDA_RUN_ID=sample HMDA_LIMIT=200000 HMDA_MODE=skip
+
+hmda-full:
+	@$(MAKE) hmda-run HMDA_RUN_ID=full HMDA_LIMIT=0 HMDA_MODE=skip
+
+hmda-ls: minio-init
+	@$(MC_RUN) ls --recursive $(MINIO_ALIAS)/$(MINIO_BUCKET)/hmda | head -n 200 || true
+
+
+# ============================================================
+# Fannie one-shot runners (NO rebuild)
+# - Uses docker compose exec (fast, no new container)
+# ============================================================
+
+.PHONY: fannie-sample fannie-full fannie-run fannie-ls
+
+FANNIE_BUCKET ?= $(MINIO_BUCKET)
+FANNIE_LIMIT ?= 200000
+FANNIE_RUN_ID ?= sample
+FANNIE_DATASET_ID ?= 2025Q1
+FANNIE_BRONZE ?= data/00_raw/finance_housing/fannie_mae/loan_performance/fannie_mae_2025Q1.csv
+
+fannie-run: minio-init plumbing-up
+	@echo "[fannie] dataset=$(FANNIE_DATASET_ID) run_id=$(FANNIE_RUN_ID) limit=$(FANNIE_LIMIT)"
+	docker compose exec \
+	  -e MINIO_S3_ENDPOINT=$(MINIO_HOST):$(MINIO_PORT) \
+	  -e MINIO_ROOT_USER=$(MINIO_ACCESS_KEY) \
+	  -e MINIO_ROOT_PASSWORD=$(MINIO_SECRET_KEY) \
+	  api uv run python -m caseflow.cli.ingest_fannie \
+	    --bronze "$(FANNIE_BRONZE)" \
+	    --bucket $(FANNIE_BUCKET) \
+	    --dataset-id $(FANNIE_DATASET_ID) \
+	    --run-id $(FANNIE_RUN_ID) \
+	    --limit $(FANNIE_LIMIT)
+
+fannie-sample:
+	@$(MAKE) fannie-run FANNIE_RUN_ID=sample FANNIE_LIMIT=200000
+
+fannie-full:
+	@$(MAKE) fannie-run FANNIE_RUN_ID=full FANNIE_LIMIT=0
+
+fannie-ls: minio-init
+	@$(MC_RUN) ls --recursive $(MINIO_ALIAS)/$(MINIO_BUCKET)/fannie | head -n 200 || true
+
+
+# ============================================================
+# Reads ALL matching *.txt via glob (DuckDB read_csv supports globs)
+# Produces TWO silver outputs:
+#   - loans (record_type=20)
+#   - perf  (record_type=50)
+# ============================================================
+.PHONY: freddie-sample freddie-full freddie-run freddie-ls
+
+FREDDIE_BUCKET ?= lake
+FREDDIE_RUN_ID ?= sample
+
+# IMPORTANT:
+# Pass a glob (many files)
+FREDDIE_BRONZE_GLOB ?= data/00_raw/finance_housing/freddie_mac/crt/2025-12/*.txt
+
+FREDDIE_DATASET_ID ?= 2025-12
+
+# Sample = limit to keep runs fast; Full = 0 => no limit
+FREDDIE_LIMIT ?= 200000
+
+freddie-run: minio-init plumbing-up
+	@echo "[freddie] dataset=$(FREDDIE_DATASET_ID) run_id=$(FREDDIE_RUN_ID) limit=$(FREDDIE_LIMIT) bronze=$(FREDDIE_BRONZE_GLOB)"
+	docker compose exec \
+	  -e MINIO_S3_ENDPOINT=$(MINIO_HOST):$(MINIO_PORT) \
+	  -e MINIO_ROOT_USER=$(MINIO_ACCESS_KEY) \
+	  -e MINIO_ROOT_PASSWORD=$(MINIO_SECRET_KEY) \
+	  api uv run python -m caseflow.cli.ingest_freddie \
+	    --bronze "$(FREDDIE_BRONZE_GLOB)" \
+	    --bucket $(FREDDIE_BUCKET) \
+	    --dataset-id $(FREDDIE_DATASET_ID) \
+	    --run-id $(FREDDIE_RUN_ID) \
+	    --limit $(FREDDIE_LIMIT)
+
+freddie-sample:
+	@$(MAKE) freddie-run FREDDIE_RUN_ID=sample FREDDIE_LIMIT=200000
+
+freddie-full:
+	@$(MAKE) freddie-run FREDDIE_RUN_ID=full FREDDIE_LIMIT=0
+
+freddie-ls: minio-init
+	@$(MC_RUN) ls --recursive $(MINIO_ALIAS)/$(MINIO_BUCKET)/freddie | head -n 200 || true
+
+
+# -----------------------------
+# FUNSD OCR v1 (local -> MinIO)
+# -----------------------------
+FUNSD_RUN_ID ?= sample
+FUNSD_LIMIT ?= 5
+FUNSD_ENGINE ?= noop
+FUNSD_BUCKET ?= lake
+
+FUNSD_IMAGES_TRAIN ?= data/00_raw/documents_ocr/funsd/training_data/images/*.png
+FUNSD_ANN_TRAIN ?= data/00_raw/documents_ocr/funsd/training_data/annotations
+FUNSD_IMAGES_TEST ?= data/00_raw/documents_ocr/funsd/testing_data/images/*.png
+FUNSD_ANN_TEST ?= data/00_raw/documents_ocr/funsd/testing_data/annotations
+
+funsd-ocr-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_funsd_ocr \
+	    --bronze-images "$(FUNSD_IMAGES_TRAIN)" \
+	    --bronze-annotations-dir "$(FUNSD_ANN_TRAIN)" \
+	    --bucket "$(FUNSD_BUCKET)" \
+	    --split training \
+	    --run-id "$(FUNSD_RUN_ID)" \
+	    --limit-docs "$(FUNSD_LIMIT)" \
+	    --ocr-engine "$(FUNSD_ENGINE)"
+
+funsd-ocr-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_funsd_ocr \
+	    --bronze-images "$(FUNSD_IMAGES_TRAIN)" \
+	    --bronze-annotations-dir "$(FUNSD_ANN_TRAIN)" \
+	    --bucket "$(FUNSD_BUCKET)" \
+	    --split training \
+	    --run-id "$(FUNSD_RUN_ID)" \
+	    --limit-docs 0 \
+	    --ocr-engine "$(FUNSD_ENGINE)"
+
+funsd-ocr-testing-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_funsd_ocr \
+	    --bronze-images "$(FUNSD_IMAGES_TEST)" \
+	    --bronze-annotations-dir "$(FUNSD_ANN_TEST)" \
+	    --bucket "$(FUNSD_BUCKET)" \
+	    --split testing \
+	    --run-id "$(FUNSD_RUN_ID)" \
+	    --limit-docs "$(FUNSD_LIMIT)" \
+	    --ocr-engine "$(FUNSD_ENGINE)"
+
+funsd-ocr-ls:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.minio_ls \
+	    --bucket "$(FUNSD_BUCKET)" \
+	    --prefix "docs/silver_ocr/funsd" \
+	    --limit 80
