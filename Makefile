@@ -562,3 +562,86 @@ synthdog-truth-full:
 	    --bucket "$(SYNTHDOG_BUCKET)" \
 	    --run-id "full" \
 	    --limit-files 0
+
+
+
+# -----------------------------
+# Lending Club ingest
+# -----------------------------
+LENDING_CLUB_BRONZE ?= data/00_raw/misc/lending_club.csv
+LENDING_CLUB_BUCKET ?= lake
+LENDING_CLUB_RUN_ID ?= sample
+LENDING_CLUB_LIMIT ?= 10000
+
+lending-club-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_lending_club \
+	    --bronze "$(LENDING_CLUB_BRONZE)" \
+	    --bucket "$(LENDING_CLUB_BUCKET)" \
+	    --run-id "$(LENDING_CLUB_RUN_ID)" \
+	    --limit "$(LENDING_CLUB_LIMIT)"
+
+lending-club-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_lending_club \
+	    --bronze "$(LENDING_CLUB_BRONZE)" \
+	    --bucket "$(LENDING_CLUB_BUCKET)" \
+	    --run-id "full" \
+	    --limit 0
+
+
+# -----------------------------
+# Sanctions / compliance ingest
+# -----------------------------
+SANCTIONS_BUCKET ?= lake
+SANCTIONS_RUN_ID ?= sample
+SANCTIONS_LIMIT ?= 10000
+
+DEBARMENT_BRONZE ?= data/00_raw/compliance_sanctions/opensanctions/debarment.csv
+CONSOLIDATED_SDN_BRONZE ?= data/00_raw/compliance_sanctions/us_treasury_sdn/consolidated_sdn.csv
+SDN_BRONZE ?= data/00_raw/compliance_sanctions/us_treasury_sdn/sdn.csv
+
+sanctions-debarment-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(DEBARMENT_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "opensanctions" \
+	    --dataset-name "debarment" \
+	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --limit "$(SANCTIONS_LIMIT)"
+
+sanctions-consolidated-sdn-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(CONSOLIDATED_SDN_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "us_treasury_sdn" \
+	    --dataset-name "consolidated_sdn" \
+	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --limit "$(SANCTIONS_LIMIT)"
+
+sanctions-sdn-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(SDN_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "us_treasury_sdn" \
+	    --dataset-name "sdn" \
+	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --limit "$(SANCTIONS_LIMIT)"
