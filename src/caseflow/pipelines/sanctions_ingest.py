@@ -45,9 +45,10 @@ def _curated_select_sql(
     Government CSV files often have:
     - messy quoting
     - inconsistent rows
-    - extra commas
+    - embedded commas
+    - quoted newlines
 
-    So we disable strict parsing and ignore bad rows.
+    So we use permissive parsing and disable the parallel reader.
     """
 
     csv_path_sql = bronze_csv_path.as_posix().replace("'", "''")
@@ -61,7 +62,8 @@ def _curated_select_sql(
             delim=',',
             strict_mode=false,
             ignore_errors=true,
-            null_padding=true
+            null_padding=true,
+            parallel=false
         )
         {limit_clause}
     """

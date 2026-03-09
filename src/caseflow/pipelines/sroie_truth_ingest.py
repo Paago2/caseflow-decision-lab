@@ -34,7 +34,16 @@ def _doc_id_from_path(path: Path) -> str:
 
 
 def _read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8").strip()
+    """
+    Read text files from SROIE dataset.
+
+    Some files contain non-UTF8 characters (e.g. £ € ¥),
+    so we try UTF-8 first and fall back to latin-1.
+    """
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except UnicodeDecodeError:
+        return path.read_text(encoding="latin-1").strip()
 
 
 def _read_json(path: Path) -> Any:

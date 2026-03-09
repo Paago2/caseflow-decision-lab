@@ -340,7 +340,6 @@ freddie-ls: minio-init
 # -----------------------------
 # FUNSD OCR v1 (local -> MinIO)
 # -----------------------------
-FUNSD_RUN_ID ?= sample
 FUNSD_LIMIT ?= 5
 FUNSD_ENGINE ?= noop
 FUNSD_BUCKET ?= lake
@@ -350,7 +349,7 @@ FUNSD_ANN_TRAIN ?= data/00_raw/documents_ocr/funsd/training_data/annotations
 FUNSD_IMAGES_TEST ?= data/00_raw/documents_ocr/funsd/testing_data/images/*.png
 FUNSD_ANN_TEST ?= data/00_raw/documents_ocr/funsd/testing_data/annotations
 
-funsd-ocr-sample:
+funsd-ocr-train-sample:
 	docker compose run --rm \
 	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
 	  -e MINIO_ROOT_USER=minioadmin \
@@ -360,11 +359,11 @@ funsd-ocr-sample:
 	    --bronze-annotations-dir "$(FUNSD_ANN_TRAIN)" \
 	    --bucket "$(FUNSD_BUCKET)" \
 	    --split training \
-	    --run-id "$(FUNSD_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit-docs "$(FUNSD_LIMIT)" \
 	    --ocr-engine "$(FUNSD_ENGINE)"
 
-funsd-ocr-full:
+funsd-ocr-train-full:
 	docker compose run --rm \
 	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
 	  -e MINIO_ROOT_USER=minioadmin \
@@ -374,11 +373,11 @@ funsd-ocr-full:
 	    --bronze-annotations-dir "$(FUNSD_ANN_TRAIN)" \
 	    --bucket "$(FUNSD_BUCKET)" \
 	    --split training \
-	    --run-id "$(FUNSD_RUN_ID)" \
+	    --run-id "full" \
 	    --limit-docs 0 \
 	    --ocr-engine "$(FUNSD_ENGINE)"
 
-funsd-ocr-testing-sample:
+funsd-ocr-test-sample:
 	docker compose run --rm \
 	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
 	  -e MINIO_ROOT_USER=minioadmin \
@@ -388,8 +387,22 @@ funsd-ocr-testing-sample:
 	    --bronze-annotations-dir "$(FUNSD_ANN_TEST)" \
 	    --bucket "$(FUNSD_BUCKET)" \
 	    --split testing \
-	    --run-id "$(FUNSD_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit-docs "$(FUNSD_LIMIT)" \
+	    --ocr-engine "$(FUNSD_ENGINE)"
+
+funsd-ocr-test-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_funsd_ocr \
+	    --bronze-images "$(FUNSD_IMAGES_TEST)" \
+	    --bronze-annotations-dir "$(FUNSD_ANN_TEST)" \
+	    --bucket "$(FUNSD_BUCKET)" \
+	    --split testing \
+	    --run-id "full" \
+	    --limit-docs 0 \
 	    --ocr-engine "$(FUNSD_ENGINE)"
 
 funsd-ocr-ls:
@@ -401,7 +414,6 @@ funsd-ocr-ls:
 	    --bucket "$(FUNSD_BUCKET)" \
 	    --prefix "docs/silver_ocr/funsd" \
 	    --limit 80
-
 
 # -----------------------------
 # DocVQA source truth v1 (local -> MinIO)
@@ -473,7 +485,6 @@ census-bg-ingest:
 # -----------------------------
 # SROIE source truth v1 (local -> MinIO)
 # -----------------------------
-SROIE_RUN_ID ?= sample
 SROIE_LIMIT ?= 5
 SROIE_BUCKET ?= lake
 
@@ -496,7 +507,7 @@ sroie-truth-train-sample:
 	    --bronze-entities-dir "$(SROIE_TRAIN_ENTITIES)" \
 	    --bucket "$(SROIE_BUCKET)" \
 	    --split train \
-	    --run-id "$(SROIE_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit-docs "$(SROIE_LIMIT)"
 
 sroie-truth-train-full:
@@ -524,9 +535,22 @@ sroie-truth-test-sample:
 	    --bronze-entities-dir "$(SROIE_TEST_ENTITIES)" \
 	    --bucket "$(SROIE_BUCKET)" \
 	    --split test \
-	    --run-id "$(SROIE_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit-docs "$(SROIE_LIMIT)"
 
+sroie-truth-test-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sroie_truth \
+	    --bronze-images "$(SROIE_TEST_IMAGES)" \
+	    --bronze-boxes-dir "$(SROIE_TEST_BOXES)" \
+	    --bronze-entities-dir "$(SROIE_TEST_ENTITIES)" \
+	    --bucket "$(SROIE_BUCKET)" \
+	    --split test \
+	    --run-id "full" \
+	    --limit-docs 0
 
 
 # -----------------------------
@@ -600,7 +624,6 @@ lending-club-full:
 # Sanctions / compliance ingest
 # -----------------------------
 SANCTIONS_BUCKET ?= lake
-SANCTIONS_RUN_ID ?= sample
 SANCTIONS_LIMIT ?= 10000
 
 DEBARMENT_BRONZE ?= data/00_raw/compliance_sanctions/opensanctions/debarment.csv
@@ -617,8 +640,21 @@ sanctions-debarment-sample:
 	    --bucket "$(SANCTIONS_BUCKET)" \
 	    --category "opensanctions" \
 	    --dataset-name "debarment" \
-	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit "$(SANCTIONS_LIMIT)"
+
+sanctions-debarment-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(DEBARMENT_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "opensanctions" \
+	    --dataset-name "debarment" \
+	    --run-id "full" \
+	    --limit 0
 
 sanctions-consolidated-sdn-sample:
 	docker compose run --rm \
@@ -630,8 +666,21 @@ sanctions-consolidated-sdn-sample:
 	    --bucket "$(SANCTIONS_BUCKET)" \
 	    --category "us_treasury_sdn" \
 	    --dataset-name "consolidated_sdn" \
-	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit "$(SANCTIONS_LIMIT)"
+
+sanctions-consolidated-sdn-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(CONSOLIDATED_SDN_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "us_treasury_sdn" \
+	    --dataset-name "consolidated_sdn" \
+	    --run-id "full" \
+	    --limit 0
 
 sanctions-sdn-sample:
 	docker compose run --rm \
@@ -643,5 +692,23 @@ sanctions-sdn-sample:
 	    --bucket "$(SANCTIONS_BUCKET)" \
 	    --category "us_treasury_sdn" \
 	    --dataset-name "sdn" \
-	    --run-id "$(SANCTIONS_RUN_ID)" \
+	    --run-id "sample" \
 	    --limit "$(SANCTIONS_LIMIT)"
+
+sanctions-sdn-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sanctions \
+	    --bronze "$(SDN_BRONZE)" \
+	    --bucket "$(SANCTIONS_BUCKET)" \
+	    --category "us_treasury_sdn" \
+	    --dataset-name "sdn" \
+	    --run-id "full" \
+	    --limit 0
+
+
+sanctions-all-sample: sanctions-debarment-sample sanctions-consolidated-sdn-sample sanctions-sdn-sample
+
+sanctions-all-full: sanctions-debarment-full sanctions-consolidated-sdn-full sanctions-sdn-full
