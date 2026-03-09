@@ -401,3 +401,164 @@ funsd-ocr-ls:
 	    --bucket "$(FUNSD_BUCKET)" \
 	    --prefix "docs/silver_ocr/funsd" \
 	    --limit 80
+
+
+# -----------------------------
+# DocVQA source truth v1 (local -> MinIO)
+# -----------------------------
+DOCVQA_RUN_ID ?= sample
+DOCVQA_LIMIT ?= 5
+DOCVQA_BUCKET ?= lake
+DOCVQA_SPLIT ?= train
+
+DOCVQA_IMAGES ?= data/00_raw/documents_ocr/docvqa/images/*.jpg
+DOCVQA_OCR_DIR ?= data/00_raw/documents_ocr/docvqa/ocr
+DOCVQA_QAS_DIR ?= data/00_raw/documents_ocr/docvqa/qas
+
+docvqa-truth-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_docvqa_truth \
+	    --bronze-images "$(DOCVQA_IMAGES)" \
+	    --bronze-ocr-dir "$(DOCVQA_OCR_DIR)" \
+	    --bronze-qas-dir "$(DOCVQA_QAS_DIR)" \
+	    --bucket "$(DOCVQA_BUCKET)" \
+	    --split "$(DOCVQA_SPLIT)" \
+	    --run-id "$(DOCVQA_RUN_ID)" \
+	    --limit-docs "$(DOCVQA_LIMIT)"
+
+docvqa-truth-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_docvqa_truth \
+	    --bronze-images "$(DOCVQA_IMAGES)" \
+	    --bronze-ocr-dir "$(DOCVQA_OCR_DIR)" \
+	    --bronze-qas-dir "$(DOCVQA_QAS_DIR)" \
+	    --bucket "$(DOCVQA_BUCKET)" \
+	    --split "$(DOCVQA_SPLIT)" \
+	    --run-id "full" \
+	    --limit-docs 0
+
+docvqa-truth-ls:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.minio_ls \
+	    --bucket "$(DOCVQA_BUCKET)" \
+	    --prefix "docs/silver_ocr/docvqa" \
+	    --limit 80
+
+
+
+# -----------------------------
+# Census TIGER ingest
+# -----------------------------
+TIGER_SHP ?= data/00_raw/geo/census_tiger/2025/bg/VA/tl_2025_51_bg.shp
+
+census-bg-ingest:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_census_tiger \
+	    --shapefile "$(TIGER_SHP)"
+
+
+
+# -----------------------------
+# SROIE source truth v1 (local -> MinIO)
+# -----------------------------
+SROIE_RUN_ID ?= sample
+SROIE_LIMIT ?= 5
+SROIE_BUCKET ?= lake
+
+SROIE_TRAIN_IMAGES ?= data/00_raw/sroie_receipts/SROIE2019/train/img/*.jpg
+SROIE_TRAIN_BOXES ?= data/00_raw/sroie_receipts/SROIE2019/train/box
+SROIE_TRAIN_ENTITIES ?= data/00_raw/sroie_receipts/SROIE2019/train/entities
+
+SROIE_TEST_IMAGES ?= data/00_raw/sroie_receipts/SROIE2019/test/img/*.jpg
+SROIE_TEST_BOXES ?= data/00_raw/sroie_receipts/SROIE2019/test/box
+SROIE_TEST_ENTITIES ?= data/00_raw/sroie_receipts/SROIE2019/test/entities
+
+sroie-truth-train-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sroie_truth \
+	    --bronze-images "$(SROIE_TRAIN_IMAGES)" \
+	    --bronze-boxes-dir "$(SROIE_TRAIN_BOXES)" \
+	    --bronze-entities-dir "$(SROIE_TRAIN_ENTITIES)" \
+	    --bucket "$(SROIE_BUCKET)" \
+	    --split train \
+	    --run-id "$(SROIE_RUN_ID)" \
+	    --limit-docs "$(SROIE_LIMIT)"
+
+sroie-truth-train-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sroie_truth \
+	    --bronze-images "$(SROIE_TRAIN_IMAGES)" \
+	    --bronze-boxes-dir "$(SROIE_TRAIN_BOXES)" \
+	    --bronze-entities-dir "$(SROIE_TRAIN_ENTITIES)" \
+	    --bucket "$(SROIE_BUCKET)" \
+	    --split train \
+	    --run-id "full" \
+	    --limit-docs 0
+
+sroie-truth-test-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_sroie_truth \
+	    --bronze-images "$(SROIE_TEST_IMAGES)" \
+	    --bronze-boxes-dir "$(SROIE_TEST_BOXES)" \
+	    --bronze-entities-dir "$(SROIE_TEST_ENTITIES)" \
+	    --bucket "$(SROIE_BUCKET)" \
+	    --split test \
+	    --run-id "$(SROIE_RUN_ID)" \
+	    --limit-docs "$(SROIE_LIMIT)"
+
+
+
+# -----------------------------
+# SynthDog source truth v1 (local -> MinIO)
+# -----------------------------
+SYNTHDOG_RUN_ID ?= sample
+SYNTHDOG_LIMIT ?= 25
+SYNTHDOG_BUCKET ?= lake
+
+SYNTHDOG_DATA_DIR ?= data/00_raw/synthdog_en/data
+SYNTHDOG_DATASET_INFO ?= data/00_raw/synthdog_en/dataset_infos.json
+
+synthdog-truth-sample:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_synthdog_truth \
+	    --bronze-data-dir "$(SYNTHDOG_DATA_DIR)" \
+	    --bronze-dataset-info "$(SYNTHDOG_DATASET_INFO)" \
+	    --bucket "$(SYNTHDOG_BUCKET)" \
+	    --run-id "$(SYNTHDOG_RUN_ID)" \
+	    --limit-files "$(SYNTHDOG_LIMIT)"
+
+synthdog-truth-full:
+	docker compose run --rm \
+	  -e MINIO_S3_ENDPOINT=caseflow-decision-lab-minio-1:9000 \
+	  -e MINIO_ROOT_USER=minioadmin \
+	  -e MINIO_ROOT_PASSWORD=minioadmin \
+	  api uv run python -m caseflow.cli.ingest_synthdog_truth \
+	    --bronze-data-dir "$(SYNTHDOG_DATA_DIR)" \
+	    --bronze-dataset-info "$(SYNTHDOG_DATASET_INFO)" \
+	    --bucket "$(SYNTHDOG_BUCKET)" \
+	    --run-id "full" \
+	    --limit-files 0
